@@ -24,12 +24,25 @@ const resetEngine = () => {
     child = exec(engineStartCmd);
     child.stdout.on('data', function(data) {
         //result += data;
-        console.log('stdout: ',data && data.length);
-        if(currentRes)
-            currentRes.write(data);
+        console.log('stdout: (',""+!!currentRes,')',data && data.length && (data.length > 50 ? data.length : data));
+        if(currentRes && !isEngineStarting) {
+            //currentRes.write(data);
+            if(data && data.length && data.replaceAll('=','').replaceAll('\n','').trim().length){
+                console.log('final response #'+data.replaceAll('=','').replaceAll('\n','').trim()+'#')
+                currentRes.status(200).send(data);
+            } else {
+                console.log('temporary response')
+            }
+        }
         if(data && data.indexOf('GTP ready, beginning main protocol loop')>=0) {
             console.log('Engine is READY')
             isEngineStarting = false;
+            if(currentRes){
+                console.log('closed calling POST')
+                //currentRes.end();
+                currentRes.status(200).send('OKAI');
+                currentRes = null;
+            }
         }
     });
     child.stderr.on('data', function(data) {
@@ -38,6 +51,12 @@ const resetEngine = () => {
         if(data && data.indexOf('GTP ready, beginning main protocol loop')>=0) {
             console.log('Engine is READY Err')
             isEngineStarting = false;
+            if(currentRes) {
+                console.log('closed calling POST')
+                //currentRes.end();
+                currentRes.status(200).send('OKAI');
+                currentRes = null;
+            }
         }
     });
 
@@ -73,6 +92,7 @@ router.route('/engine').post((req, res) => {
     if(!isEngineOn) {
         console.log('Need to start engine, go');
         resetEngine();
+        res.status(200).send('OKAI');
     } else if (isEngineOn && child && child.stdin) {
         console.log('send cmd to engine: #', body.cmd, "#");
         currentRes = res;
