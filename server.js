@@ -13,9 +13,12 @@ let isEngineStarting = false;
 let currentRes = null;
 let result = '';
 let child = null;
+let lastSGF = null;
+let currentSGF = null;
 // C:\Users\yamak\.katrain\katago-v1.7.0-gpu-opencl-windows-x64.exe gtp -model C:\Users\yamak\.katrain\g170-b40c256x2-s5095420928-d1229425124.bin.gz -config C:\Users\yamak\.katrain\fast_analysis_config.cfg
 //const engineStartCmd = 'C:\\Users\\yamak\\.katrain\\katago-v1.7.0-gpu-opencl-windows-x64.exe gtp -model C:\\Users\\yamak\\.katrain\\g170-b40c256x2-s5095420928-d1229425124.bin.gz -config C:\\Users\\yamak\\.katrain\\fast_analysis_config.cfg';
 const engineStartCmd = '/Users/jeff/Documents/homebrew/bin/katago gtp -model /Users/jeff/Documents/go/kata1-b40c256-s11840935168-d2898845681.bin.gz -config /Users/jeff/Documents/homebrew/Cellar/katago/1.11.0/share/katago/configs/gtp_example.cfg';
+const engineClearBoard = "time_settings 0 5 1\nkomi 7.5\nboardsize 19\nclear_board\n";
 const kata_analyze_sample = "info move C3 visits 6 utility 1.04291 winrate 0.992245 scoreMean 14.4587 scoreStdev 16.1808 scoreLead 14.4587 scoreSelfplay 17.096 prior 0.0183468 lcb 0.97559 utilityLcb 0.996279 order 0 pv C3 Q4 R16 info move C17 visits 6 utility 1.04291 winrate 0.992245 scoreMean 14.4587 scoreStdev 16.1808 scoreLead 14.4587 scoreSelfplay 17.096 prior 0.0183468 lcb 0.97559 utilityLcb 0.996279 isSymmetryOf C3 order 1 pv C17 Q16 R4 info move R3 visits 6 utility 1.04291 winrate 0.992245 scoreMean 14.4587 scoreStdev 16.1808 scoreLead 14.4587 scoreSelfplay 17.096 prior 0.0183468 lcb 0.97559 utilityLcb 0.996279 isSymmetryOf C3 order 2 pv R3 D4 C16 info move R17 visits 6 utility 1.04291 winrate 0.992245 scoreMean 14.4587 scoreStdev 16.1808 scoreLead 14.4587 scoreSelfplay 17.096 prior 0.0183468 lcb 0.97559 utilityLcb 0.996279 isSymmetryOf C3 order 3 pv R17 D16 C4 info move D4 visits 6 utility 1.03122 winrate 0.992694 scoreMean 13.1039 scoreStdev 15.4155 scoreLead 13.1039 scoreSelfplay 15.9613 prior 0.0365862 lcb 0.965865 utilityLcb 0.956097 order 4 pv D4 Q16 Q4 info move D16 visits 6 utility 1.03122 winrate 0.992694 scoreMean 13.1039 scoreStdev 15.4155 scoreLead 13.1039 scoreSelfplay 15.9613 prior 0.0365862 lcb 0.965865 utilityLcb 0.956097 isSymmetryOf D4 order 5 pv D16 Q4 Q16 info move Q4 visits 6 utility 1.03122 winrate 0.992694 scoreMean 13.1039 scoreStdev 15.4155 scoreLead 13.1039 scoreSelfplay 15.9613 prior 0.0365862 lcb 0.965865 utilityLcb 0.956097 isSymmetryOf D4 order 6 pv Q4 D16 D4 info move Q16 visits 6 utility 1.03122 winrate 0.992694 scoreMean 13.1039 scoreStdev 15.4155 scoreLead 13.1039 scoreSelfplay 15.9613 prior 0.0365862 lcb 0.965865 utilityLcb 0.956097 isSymmetryOf D4 order 7 pv Q16 D4 D16 info move C4 visits 6 utility 1.03876 winrate 0.992369 scoreMean 13.9992 scoreStdev 16.0093 scoreLead 13.9992 scoreSelfplay 16.7473 prior 0.0403575 lcb 0.962421 utilityLcb 0.954908 order 8 pv C4 Q4 R16 info move C16 visits 6 utility 1.03876 winrate 0.992369 scoreMean 13.9992 scoreStdev 16.0093 scoreLead 13.9992 scoreSelfplay 16.7473 prior 0.0403575 lcb 0.962421 utilityLcb 0.954908 isSymmetryOf C4 order 9 pv C16 Q16 R4 info move R4 visits 6 utility 1.03876 winrate 0.992369 scoreMean 13.9992 scoreStdev 16.0093 scoreLead 13.9992 scoreSelfplay 16.7473 prior 0.0403575 lcb 0.962421 utilityLcb 0.954908 isSymmetryOf C4 order 10 pv R4 D4 C16 info move R16 visits 6 utility 1.03876 winrate 0.992369 scoreMean 13.9992 scoreStdev 16.0093 scoreLead 13.9992 scoreSelfplay 16.7473 prior 0.0403575 lcb 0.962421 utilityLcb 0.954908 isSymmetryOf C4 order 11 pv R16 D16 C4 info move Q17 visits 6 utility 1.03876 winrate 0.992369 scoreMean 13.9992 scoreStdev 16.0093 scoreLead 13.9992 scoreSelfplay 16.7473 prior 0.0403575 lcb 0.962421 utilityLcb 0.954908 isSymmetryOf C4 order 12 pv Q17 Q4 D3 info move D17 visits 6 utility 1.03876 winrate 0.992369 scoreMean 13.9992 scoreStdev 16.0093 scoreLead 13.9992 scoreSelfplay 16.7473 prior 0.0403575 lcb 0.962421 utilityLcb 0.954908 isSymmetryOf C4 order 13 pv D17 D4 Q3 info move Q3 visits 6 utility 1.03876 winrate 0.992369 scoreMean 13.9992 scoreStdev 16.0093 scoreLead 13.9992 scoreSelfplay 16.7473 prior 0.0403575 lcb 0.962421 utilityLcb 0.954908 isSymmetryOf C4 order 14 pv Q3 Q16 D17 info move D3 visits 6 utility 1.03876 winrate 0.992369 scoreMean 13.9992 scoreStdev 16.0093 scoreLead 13.9992 scoreSelfplay 16.7473 prior 0.0403575 lcb 0.962421 utilityLcb 0.954908 isSymmetryOf C4 order 15 pv D3 D16 Q17 info move D5 visits 6 utility 1.0397 winrate 0.992557 scoreMean 13.6523 scoreStdev 16.244 scoreLead 13.6523 scoreSelfplay 16.5357 prior 0.0145553 lcb 0.966084 utilityLcb 0.965578 order 16 pv D5 C3 E3 info move D15 visits 6 utility 1.0397 winrate 0.992557 scoreMean 13.6523 scoreStdev 16.244 scoreLead 13.6523 scoreSelfplay 16.5357 prior 0.0145553 lcb 0.966084 utilityLcb 0.965578 isSymmetryOf D5 order 17 pv D15 C17 E17 info move Q5 visits 6 utility 1.0397 winrate 0.992557 scoreMean 13.6523 scoreStdev 16.244 scoreLead 13.6523 scoreSelfplay 16.5357 prior 0.0145553 lcb 0.966084 utilityLcb 0.965578 isSymmetryOf D5 order 18 pv Q5 R3 P3 info move Q15 visits 6 utility 1.0397 winrate 0.992557 scoreMean 13.6523 scoreStdev 16.244 scoreLead 13.6523 scoreSelfplay 16.5357 prior 0.0145553 lcb 0.966084 utilityLcb 0.965578 isSymmetryOf D5 order 19 pv Q15 R17 P17 info move P16 visits 6 utility 1.0397 winrate 0.992557 scoreMean 13.6523 scoreStdev 16.244 scoreLead 13.6523 scoreSelfplay 16.5357 prior 0.0145553 lcb 0.966084 utilityLcb 0.965578 isSymmetryOf D5 order 20 pv P16 R17 R15 info move E16 visits 6 utility 1.0397 winrate 0.992557 scoreMean 13.6523 scoreStdev 16.244 scoreLead 13.6523 scoreSelfplay 16.5357 prior 0.0145553 lcb 0.966084 utilityLcb 0.965578 isSymmetryOf D5 order 21 pv E16 C17 C15 info move P4 visits 6 utility 1.0397 winrate 0.992557 scoreMean 13.6523 scoreStdev 16.244 scoreLead 13.6523 scoreSelfplay 16.5357 prior 0.0145553 lcb 0.966084 utilityLcb 0.965578 isSymmetryOf D5 order 22 pv P4 R3 R5 info move E4 visits 6 utility 1.0397 winrate 0.992557 scoreMean 13.6523 scoreStdev 16.244 scoreLead 13.6523 scoreSelfplay 16.5357 prior 0.0145553 lcb 0.966084 utilityLcb 0.965578 isSymmetryOf D5 order 23 pv E4 C3 C5 info move C5 visits 5 utility 1.03658 winrate 0.991834 scoreMean 14.022 scoreStdev 16.028 scoreLead 14.022 scoreSelfplay 16.5416 prior 0.0108768 lcb 0.950179 utilityLcb 0.919942 order 24 pv C5 Q4 Q16 info move C15 visits 5 utility 1.03658 winrate 0.991834 scoreMean 14.022 scoreStdev 16.028 scoreLead 14.022 scoreSelfplay 16.5416 prior 0.0108768 lcb 0.950179 utilityLcb 0.919942 isSymmetryOf C5 order 25 pv C15 Q16 Q4 info move R5 visits 5 utility 1.03658 winrate 0.991834 scoreMean 14.022 scoreStdev 16.028 scoreLead 14.022 scoreSelfplay 16.5416 prior 0.0108768 lcb 0.950179 utilityLcb 0.919942 isSymmetryOf C5 order 26 pv R5 D4 D16 info move R15 visits 5 utility 1.03658 winrate 0.991834 scoreMean 14.022 scoreStdev 16.028 scoreLead 14.022 scoreSelfplay 16.5416 prior 0.0108768 lcb 0.950179 utilityLcb 0.919942 isSymmetryOf C5 order 27 pv R15 D16 D4 info move P17 visits 5 utility 1.03658 winrate 0.991834 scoreMean 14.022 scoreStdev 16.028 scoreLead 14.022 scoreSelfplay 16.5416 prior 0.0108768 lcb 0.950179 utilityLcb 0.919942 isSymmetryOf C5 order 28 pv P17 Q4 D4 info move E17 visits 5 utility 1.03658 winrate 0.991834 scoreMean 14.022 scoreStdev 16.028 scoreLead 14.022 scoreSelfplay 16.5416 prior 0.0108768 lcb 0.950179 utilityLcb 0.919942 isSymmetryOf C5 order 29 pv E17 D4 Q4 info move P3 visits 5 utility 1.03658 winrate 0.991834 scoreMean 14.022 scoreStdev 16.028 scoreLead 14.022 scoreSelfplay 16.5416 prior 0.0108768 lcb 0.950179 utilityLcb 0.919942 isSymmetryOf C5 order 30 pv P3 Q16 D16 info move E3 visits 5 utility 1.03658 winrate 0.991834 scoreMean 14.022 scoreStdev 16.028 scoreLead 14.022 scoreSelfplay 16.5416 prior 0.0108768 lcb 0.950179 utilityLcb 0.919942 isSymmetryOf C5 order 31 pv E3 D16 Q16 info move C6 visits 5 utility 1.01588 winrate 0.987974 scoreMean 12.5585 scoreStdev 16.9021 scoreLead 12.5585 scoreSelfplay 15.3843 prior 0.00368594 lcb 0.919743 utilityLcb 0.824837 order 32 pv C6 C4 D4 D3 info move C14 visits 5 utility 1.01588 winrate 0.987974 scoreMean 12.5585 scoreStdev 16.9021 scoreLead 12.5585 scoreSelfplay 15.3843 prior 0.00368594 lcb 0.919743 utilityLcb 0.824837 isSymmetryOf C6 order 33 pv C14 C16 D16 D17 info move R6 visits 5 utility 1.01588 winrate 0.987974 scoreMean 12.5585 scoreStdev 16.9021 scoreLead 12.5585 scoreSelfplay 15.3843 prior 0.00368594 lcb 0.919743 utilityLcb 0.824837 isSymmetryOf C6 order 34 pv R6 R4 Q4 Q3 info move R14 visits 5 utility 1.01588 winrate 0.987974 scoreMean 12.5585 scoreStdev 16.9021 scoreLead 12.5585 scoreSelfplay 15.3843 prior 0.00368594 lcb 0.919743 utilityLcb 0.824837 isSymmetryOf C6 order 35 pv R14 R16 Q16 Q17 info move O17 visits 5 utility 1.01588 winrate 0.987974 scoreMean 12.5585 scoreStdev 16.9021 scoreLead 12.5585 scoreSelfplay 15.3843 prior 0.00368594 lcb 0.919743 utilityLcb 0.824837 isSymmetryOf C6 order 36 pv O17 Q17 Q16 R16 info move F17 visits 5 utility 1.01588 winrate 0.987974 scoreMean 12.5585 scoreStdev 16.9021 scoreLead 12.5585 scoreSelfplay 15.3843 prior 0.00368594 lcb 0.919743 utilityLcb 0.82483";
 
 /*const kata_analyze_sample = "
@@ -222,6 +225,9 @@ const resetEngine = () => {
         console.log('stderr: ',data && data.length)
         if(data && data.indexOf('GTP ready, beginning main protocol loop')>=0) {
             console.log('Engine is READY Err')
+
+            lastSGF = sgfutils.getEmptySGF();
+            currentSGF = sgfutils.getEmptySGF();
             isEngineStarting = false;
             if(currentRes) {
                 console.log('closed calling POST')
@@ -266,9 +272,24 @@ router.route('/engine').post((req, res) => {
         resetEngine();
         res.status(200).send('OKAI');
     } else if (isEngineOn && child && child.stdin) {
-        console.log('send cmd to engine: #', body.cmd, "#");
+        let cmd = body.cmd;
+        if(body.currentSGF) {
+            if(body.currentSGF === currentSGF) {
+                console.log("client and engine are in sync, we just pass the cmd")
+                cmd = body.cmd;
+            } else {
+                console.log("NOT IN SYNC, we must figure the delta")
+                let deltaCMD = sgfutils.getDeltaCMD(currentSGF , body.currentSGF );
+                console.log("delta OLD   : "+currentSGF)
+                console.log("delta TARGET: "+body.currentSGF)
+                console.log("delta CMD   : "+deltaCMD)
+                cmd = deltaCMD+body.cmd;
+                currentSGF = body.currentSGF;
+            }
+        }
+        console.log('send cmd to engine: #', cmd, "#");
         currentRes = res;
-        child.stdin.write(body.cmd);
+        child.stdin.write(cmd);
     } else {
         console.log('but engine was dead ', isEngineOn, !!child );
         res.status(400).send('DEAD');
@@ -279,6 +300,31 @@ router.route('/engine').post((req, res) => {
 
 router.route('/parseKata').post((req, res) => {
     res.status(200).send(parseKataAnalyze(kata_analyze_sample));
+});
+router.route('/testDelta').post((req, res) => {
+    const body = { ...req.body};
+    //currentSGF   = null;
+    //currentSGF   = "(;GM[1]FF[4]CA[UTF-8]KM[7.5]SZ[19])";
+    //currentSGF = "(;GM[1]FF[4]CA[UTF-8]KM[7.5]SZ[19];B[pd];W[qc];B[qd];W[pc];B[oc];W[ob])";
+    currentSGF = "(;GM[1]FF[4]CA[UTF-8]KM[7.5]SZ[19];B[pd];W[qc];B[qd];W[pc];B[oc];W[ob];B[nc])";
+
+    let cmd = body.cmd;
+    if(body.currentSGF) {
+        if(body.currentSGF === currentSGF) {
+            console.log("client and engine are in sync, we just pass the cmd")
+            cmd = body.cmd;
+        } else {
+            console.log("NOT IN SYNC, we must figure the delta")
+            let deltaCMD = sgfutils.getDeltaCMD(currentSGF , body.currentSGF );
+            console.log("delta OLD   : "+currentSGF)
+            console.log("delta TARGET: "+body.currentSGF)
+            console.log("delta CMD   : "+deltaCMD)
+            cmd = deltaCMD+body.cmd;
+            currentSGF = body.currentSGF;
+        }
+    }
+    console.log('send cmd to engine: #', cmd, "#");
+    res.status(200).send(cmd);
 });
 
 router.route('/engineRandom').post((req, res) => {

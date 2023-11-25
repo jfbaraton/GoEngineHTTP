@@ -64,6 +64,25 @@ module.exports = {
         return {x:_18b[_18a.charAt(0)],y:_18b[_18a.charAt(1)]};
     },
 
+    // B."pd" -> "B Q16"
+    SGFToHuman: function (sgfNode) {
+        if(!sgfNode || (typeof sgfNode.B === "undefined" && typeof sgfNode.W === "undefined" )) return "";
+        let result = "play "+ (typeof sgfNode.B === "undefined" ? "W " : "B ");
+        const SGFmoveString = typeof sgfNode.B === "undefined" ? sgfNode.W : sgfNode.B;
+        const movePoint = this.sgfCoordToPoint(SGFmoveString);
+
+        result += this.pointToHuman(movePoint);
+        return result+"\n";
+    },
+
+    pointToHuman:function(pt){
+        if(!pt || pt.pass){
+            return "PASS";
+        }
+        const pts={0:"A",1:"B",2:"C",3:"D",4:"E",5:"F",6:"G",7:"H",8:"J",9:"K",10:"L",11:"M",12:"N",13:"O",14:"P",15:"Q",16:"R",17:"S",18:"T"};
+        return pts[pt.x]+(19-pt.y);
+    },
+
     pointToSgfCoord:function(pt){
         if(!pt || pt.x === null || pt.y === null || pt.x <0 || pt.y <0){
             return "";
@@ -614,36 +633,6 @@ module.exports = {
             this.cleanSGFBranch(oneChild, 1, oneChild.nodes[0], isHandicap, moveNumber+1);
         }
     },
-/*
-    is14O16: function(currentNode, moveNumber){
-        const O16 = "nd";
-        let move = currentNode.node.nodes[currentNode.nodeIdx];
-        if(14 === moveNumber && (move.B === O16 || move.W === O16)) {
-            console.log('found O16 as move 14 : ',this.getNodeSeparatedSGF({node:currentNode.node, nodeIdx:currentNode.nodeIdx}));
-        }
-
-    },
-    is17N16: function(currentNode, moveNumber){
-        const N16 = "md";
-        let move = currentNode.node.nodes[currentNode.nodeIdx];
-        if(18 === moveNumber && (move.B === N16 || move.W === N16)) {
-            console.log('found N16 as move 17 : ',this.getNodeSeparatedSGF({node:currentNode.node, nodeIdx:currentNode.nodeIdx}));
-        }
-
-    },
-    isTenukiAsD4: function(currentNode, moveNumber){
-        const D4 = "dp";
-        let move = currentNode.node.nodes[currentNode.nodeIdx];
-        if(move.B === D4 || move.W === D4) {
-            console.log('found Tenuki as D4 : ',this.getNodeSeparatedSGF({node:currentNode.node, nodeIdx:currentNode.nodeIdx}));
-            if(move.B === D4) {
-                move.B = '';
-            } else {
-                move.W = '';
-            }
-        }
-
-    },*/
 
     addPASSBefore: function(node, nodeIdx, lastMoveNode) {
         //console.log('addPASSBefore '+nodeIdx, lastMoveNode);
@@ -885,6 +874,139 @@ module.exports = {
                 }
             }
         }
+    },
+
+    getDeltaCMD: function (previousSGF, targetSGF ) {
+        const previousSGFgame = previousSGF ? sgf.parse(previousSGF) : null;
+        const targetSGFgame = targetSGF ? sgf.parse(targetSGF) : this.getEmptySGF();
+
+        let differencefound = !previousSGFgame;
+        let differenceFromBeginning = !previousSGFgame;
+        let resultCMD = differenceFromBeginning ? "clear_board\n" : "";
+        let moveNumber = 0;
+
+        let previousnodeIdx= 0;
+        let previousnodeParent = previousSGFgame && previousSGFgame.gameTrees[0]
+        let previousnodes = previousnodeParent && previousnodeParent.nodes;
+        let previouslastNode = null;
+
+        let targetnodeIdx= 0;
+        let targetnodeParent = targetSGFgame.gameTrees[0]
+        let targetnodes = targetnodeParent.nodes;
+        let targetlastNode = null;
+
+        while (!differenceFromBeginning && previousnodeIdx < previousnodes.length && targetnodeIdx < targetnodes.length) {
+            //console.log("nodes.length ",nodes.length, nodes)
+            previouslastNode = previousnodes[previousnodeIdx];
+            targetlastNode = targetnodes[targetnodeIdx];
+            if( !differencefound && this.SGFToHuman(previouslastNode) === this.SGFToHuman(targetlastNode)){
+                //console.log(this.SGFToHuman(previouslastNode)," == ",this.SGFToHuman(targetlastNode))
+                // nothing to do
+            } else {
+                differencefound = true;
+                if(moveNumber <= 1) {
+                    //console.log("difference from beginning1")
+                    differenceFromBeginning = true;
+                    resultCMD = "clear_board\n";
+                } else {
+                    //console.log("difference from move ",moveNumber)
+                }
+                if(!differenceFromBeginning) {
+                    //console.log("undo")
+                    resultCMD = "undo\n"+resultCMD;
+                } else {
+                    break;
+                }
+
+                resultCMD += this.SGFToHuman(targetlastNode);
+            }
+            moveNumber++;
+            previousnodeIdx++;
+            targetnodeIdx++;
+            if(previousnodeIdx >= previousnodes.length && previousnodeParent.sequences && previousnodeParent.sequences.length && previousnodeParent.sequences[0].nodes) {
+                previousnodeIdx = 0;
+                previousnodeParent = previousnodeParent.sequences[0]
+                previousnodes = previousnodeParent.nodes;
+            }
+            if(targetnodeIdx >= targetnodes.length && targetnodeParent.sequences && targetnodeParent.sequences.length && targetnodeParent.sequences[0].nodes) {
+                targetnodeIdx = 0;
+                targetnodeParent = targetnodeParent.sequences[0]
+                targetnodes = targetnodeParent.nodes;
+            }
+
+        }
+
+        while (previousnodes && previousnodeIdx < previousnodes.length && !differenceFromBeginning) {
+            //console.log("nodes.length ",nodes.length, nodes)
+            //console.log("loop2")
+            previouslastNode = previousnodes[previousnodeIdx];
+
+            resultCMD = "undo\n"+resultCMD;
+
+            moveNumber++;
+            previousnodeIdx++;
+            if(previousnodeIdx >= previousnodes.length && previousnodeParent.sequences && previousnodeParent.sequences.length && previousnodeParent.sequences[0].nodes) {
+                previousnodeIdx = 0;
+                previousnodeParent = previousnodeParent.sequences[0]
+                previousnodes = previousnodeParent.nodes;
+            }
+
+        }
+
+        while (targetnodeIdx < targetnodes.length) {
+            //console.log("nodes.length ",nodes.length, nodes)
+            //console.log("loop3")
+            targetlastNode = targetnodes[targetnodeIdx];
+
+            resultCMD += this.SGFToHuman(targetlastNode);
+
+            moveNumber++;
+            targetnodeIdx++;
+            if(targetnodeIdx >= targetnodes.length && targetnodeParent.sequences && targetnodeParent.sequences.length && targetnodeParent.sequences[0].nodes) {
+                targetnodeIdx = 0;
+                targetnodeParent = targetnodeParent.sequences[0]
+                targetnodes = targetnodeParent.nodes;
+            }
+
+        }
+        return resultCMD;
+    },
+
+    getGTPCommand: function(SGFString, currentMove) {
+        let currentMoveNumber = 10000;
+        if(currentMove) {
+            try{
+                currentMoveNumber = parseInt(currentMove.split(" ")[1]);
+                //console.log("will limit to currentMoveNumber");
+            } catch(e) {
+                //console.log("could not parse move currentMoveNumber")
+            }
+        }
+        const SGFgame = sgf.parse(SGFString);
+        //let initCMD = "time_settings 0 5 1\nkomi 7.5\nboardsize 19\nclear_board\n";
+        let initCMD = "";
+        let nodeIdx= 0;
+        let nodeParent = SGFgame.gameTrees[0]
+        let nodes = nodeParent.nodes;
+        let lastNode = null;
+        let cursorMoveNumber = 0;
+        //console.log("game tree ",SGFgame.gameTrees[0])
+        while (nodeIdx < nodes.length && cursorMoveNumber <= currentMoveNumber) {
+            cursorMoveNumber++;
+            //console.log("nodes.length ",nodes.length, nodes)
+            lastNode = nodes[nodeIdx];
+            initCMD += this.SGFToHuman(lastNode);
+            nodeIdx++;
+            if(nodeIdx >= nodes.length && nodeParent.sequences && nodeParent.sequences.length && nodeParent.sequences[0].nodes) {
+                nodeIdx = 0;
+                nodeParent = nodeParent.sequences[0]
+                nodes = nodeParent.nodes;
+            }
+
+        }
+        //console.log("genmove after ",cursorMoveNumber, typeof lastNode.W !== "undefined", lastNode)
+        console.log("genmove after ",(initCMD+"kata-analyze "+((cursorMoveNumber<=1 || typeof lastNode.W !== "undefined")? "B" : "W" )))
+        return initCMD+"kata-analyze "+((cursorMoveNumber<=1 || typeof lastNode.W !== "undefined")? "B" : "W" )+" 50\n";
     },
 
 
