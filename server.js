@@ -107,6 +107,7 @@ const myEngineSettingNames = [ // priority in this order
 const chooseKataMove = (kataMoves) => {
     let kata_filtered_moves = kataMoves.filter(oneMove => kataMoves[0][1]-myEngineSettings.loss_limit < oneMove[1]).sort((moveA, moveB)=>(moveB[1]-moveA[1]))
 
+    console.log("chooseKataMove: before ("+kata_filtered_moves.length+")", kata_filtered_moves);
     let currentChoice = null;
     let settingIdx = 4;
     while(kata_filtered_moves.length >1 && settingIdx<myEngineSettingNames.length) {
@@ -114,7 +115,6 @@ const chooseKataMove = (kataMoves) => {
         const settingName = myEngineSettingNames[settingIdx];
         if(myEngineSettings[settingName] && myEngineSettings[settingName] !== "no") {
             //console.log("chooseKataMove: "+settingName+"("+kata_filtered_moves.length+")", currentChoice[0])
-            console.log("chooseKataMove: "+settingName+"("+kata_filtered_moves.length+")", currentChoice[0], kata_filtered_moves)
             switch (settingName) {
                 case "preferShape": //"keima", "tobi", "hane", "cut", "crosscut", "nobi", "kosumi"}
                     break;
@@ -135,10 +135,11 @@ const chooseKataMove = (kataMoves) => {
                     break;
 
             }
+            console.log("chooseKataMove: after "+settingName+"("+kata_filtered_moves.length+")", kata_filtered_moves)
         }
         settingIdx++;
     }
-    console.log(JSON.stringify(kata_filtered_moves))
+    //console.log(JSON.stringify(kata_filtered_moves))
 
     return kata_filtered_moves.length ? pickKataMoveByIdx(kata_filtered_moves) : currentChoice;
 }
@@ -185,12 +186,12 @@ const copyGenMoveOrAnalyze = (engineResp)=>{
     } else if(engineResp && engineResp.length && engineResp.replaceAll('=','').replaceAll('\n','').trim().length){
         let returnedValue = engineResp.indexOf(visitsTag)>0 ? parseKataAnalyze(engineResp): [[engineResp.replaceAll('=','').replaceAll('\n','').trim(),1,100]];
         returnedValue = chooseKataMove(returnedValue);
-        console.log('final response1 #'+JSON.stringify(returnedValue)+'#')
+        //console.log('final response1 #'+JSON.stringify(returnedValue)+'#')
         currentRes.status(200).send(returnedValue[0][0]);
         child && child.stdin && child.stdin.write("\n");
         currentRes = null;
     } else {
-        console.log('temporary response')
+        //console.log('temporary response')
     }
 }
 
@@ -204,7 +205,7 @@ const resetEngine = () => {
     child = exec(engineStartCmd);
     child.stdout.on('data', function(data) {
         //result += data;
-        console.log('stdout: (',""+!!currentRes,')',data && data.length /*&& (data.length > 50 ? data.length : data)*/);
+        //console.log('stdout: (',""+!!currentRes,')',data && data.length /*&& (data.length > 50 ? data.length : data)*/);
         if(currentRes && !isEngineStarting) {
             //currentRes.write(data);
             currentBehaviour(data)
@@ -274,14 +275,14 @@ router.route('/engine').post((req, res) => {
         let cmd = body.cmd;
         if(body.currentSGF) {
             if(body.currentSGF === currentSGF) {
-                console.log("client and engine are in sync, we just pass the cmd")
+                //console.log("client and engine are in sync, we just pass the cmd")
                 cmd = body.cmd;
             } else {
-                console.log("NOT IN SYNC, we must figure the delta ", currentSGF)
+                //console.log("NOT IN SYNC, we must figure the delta ", currentSGF)
                 let deltaCMD = sgfutils.getDeltaCMD(currentSGF , body.currentSGF );
-                console.log("delta OLD   : "+currentSGF)
-                console.log("delta TARGET: "+body.currentSGF)
-                console.log("delta CMD   : "+deltaCMD)
+                //console.log("delta OLD   : "+currentSGF)
+                //console.log("delta TARGET: "+body.currentSGF)
+                //console.log("delta CMD   : "+deltaCMD)
                 cmd = deltaCMD+body.cmd;
                 currentSGF = body.currentSGF;
             }
