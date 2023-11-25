@@ -13,7 +13,6 @@ let isEngineStarting = false;
 let currentRes = null;
 let result = '';
 let child = null;
-let lastSGF = null;
 let currentSGF = null;
 // C:\Users\yamak\.katrain\katago-v1.7.0-gpu-opencl-windows-x64.exe gtp -model C:\Users\yamak\.katrain\g170-b40c256x2-s5095420928-d1229425124.bin.gz -config C:\Users\yamak\.katrain\fast_analysis_config.cfg
 //const engineStartCmd = 'C:\\Users\\yamak\\.katrain\\katago-v1.7.0-gpu-opencl-windows-x64.exe gtp -model C:\\Users\\yamak\\.katrain\\g170-b40c256x2-s5095420928-d1229425124.bin.gz -config C:\\Users\\yamak\\.katrain\\fast_analysis_config.cfg';
@@ -226,8 +225,7 @@ const resetEngine = () => {
         if(data && data.indexOf('GTP ready, beginning main protocol loop')>=0) {
             console.log('Engine is READY Err')
 
-            lastSGF = sgfutils.getEmptySGF();
-            currentSGF = sgfutils.getEmptySGF();
+            currentSGF = '(;GM[1]FF[4]CA[UTF-8]KM[7.5]SZ[19])';
             isEngineStarting = false;
             if(currentRes) {
                 console.log('closed calling POST')
@@ -278,7 +276,7 @@ router.route('/engine').post((req, res) => {
                 console.log("client and engine are in sync, we just pass the cmd")
                 cmd = body.cmd;
             } else {
-                console.log("NOT IN SYNC, we must figure the delta")
+                console.log("NOT IN SYNC, we must figure the delta ", currentSGF)
                 let deltaCMD = sgfutils.getDeltaCMD(currentSGF , body.currentSGF );
                 console.log("delta OLD   : "+currentSGF)
                 console.log("delta TARGET: "+body.currentSGF)
@@ -303,8 +301,8 @@ router.route('/parseKata').post((req, res) => {
 });
 router.route('/testDelta').post((req, res) => {
     const body = { ...req.body};
-    //currentSGF   = null;
-    //currentSGF   = "(;GM[1]FF[4]CA[UTF-8]KM[7.5]SZ[19])";
+    //currentSGF   = null; // start with clear
+    //currentSGF   = "(;GM[1]FF[4]CA[UTF-8]KM[7.5]SZ[19])";  // start with target first move
     //currentSGF = "(;GM[1]FF[4]CA[UTF-8]KM[7.5]SZ[19];B[pd];W[qc];B[qd];W[pc];B[oc];W[ob])";
     currentSGF = "(;GM[1]FF[4]CA[UTF-8]KM[7.5]SZ[19];B[pd];W[qc];B[qd];W[pc];B[oc];W[ob];B[nc])";
 
@@ -314,7 +312,7 @@ router.route('/testDelta').post((req, res) => {
             console.log("client and engine are in sync, we just pass the cmd")
             cmd = body.cmd;
         } else {
-            console.log("NOT IN SYNC, we must figure the delta")
+            console.log("NOT IN SYNC, we must figure the delta ",currentSGF)
             let deltaCMD = sgfutils.getDeltaCMD(currentSGF , body.currentSGF );
             console.log("delta OLD   : "+currentSGF)
             console.log("delta TARGET: "+body.currentSGF)
