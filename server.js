@@ -113,7 +113,8 @@ const chooseKataMove = (kataMoves) => {
         currentChoice = pickKataMoveByIdx(kata_filtered_moves)
         const settingName = myEngineSettingNames[settingIdx];
         if(myEngineSettings[settingName] && myEngineSettings[settingName] !== "no") {
-            console.log("chooseKataMove: "+settingName+"("+kata_filtered_moves.length+")", currentChoice[0])
+            //console.log("chooseKataMove: "+settingName+"("+kata_filtered_moves.length+")", currentChoice[0])
+            console.log("chooseKataMove: "+settingName+"("+kata_filtered_moves.length+")", currentChoice[0], kata_filtered_moves)
             switch (settingName) {
                 case "preferShape": //"keima", "tobi", "hane", "cut", "crosscut", "nobi", "kosumi"}
                     break;
