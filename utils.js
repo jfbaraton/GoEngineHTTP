@@ -1,5 +1,4 @@
 var sgf = require('smartgame');
-var smartgamer = require('smartgamer');
 
 // how many points can you lose in one move and still consider it "joseki"?
 //const JOSEKI_MARGIN = 2.3;
@@ -27,6 +26,7 @@ module.exports = {
 
     // human to sgfCoord
     humanToSgfCoord: function coordinatesFor(moveHumanString) {
+        console.log("humanToSgfCoord ", moveHumanString);
         if(!moveHumanString || typeof moveHumanString !== "string" || moveHumanString === "root") return null;
         if(moveHumanString === "pass" || moveHumanString === "PASS") return "";
         let x = moveHumanString.toUpperCase().substring(0,1).charCodeAt(0)-'A'.charCodeAt(0);
@@ -63,6 +63,7 @@ module.exports = {
     },
 
     pointToSgfCoord:function(pt){
+        console.log("pointToSgfCoord ", pt);
         if(!pt || pt.x === null || pt.y === null || pt.x <0 || pt.y <0){
             return "";
         }
@@ -1009,8 +1010,9 @@ module.exports = {
     },
 
     addMovetoSGF : function(p_nodeAndNodeIdx, move) {
-        let SGFmove = this.humanToSgfCoord(move.split(" ").slice(-1))
-        p_nodeAndNodeIdx.nodes.push(
+        console.log("addMovetoSGF ", move)
+        let SGFmove = this.humanToSgfCoord(move.split(" ").slice(-1)[0])
+        p_nodeAndNodeIdx.node.nodes.push(
             move.toUpperCase().indexOf(" B ")>0 ? {
                 B: SGFmove
             } : {W: SGFmove}
@@ -1018,7 +1020,7 @@ module.exports = {
     },
 
     addPasstoSGF : function(p_nodeAndNodeIdx, move) {
-        //let lastMoveNode = p_nodeAndNodeIdx.nodes[p_nodeAndNodeIdx.nodeIdx]
+        //let lastMoveNode = p_nodeAndNodeIdx.node.nodes[p_nodeAndNodeIdx.nodeIdx]
         /*let addedMove = {
             nodes: [typeof lastMoveNode.W !== "undefined" ? {
                 B: ''
@@ -1028,7 +1030,7 @@ module.exports = {
             sequences:[]
         };
         node.sequences.push(addedMove);*/
-        p_nodeAndNodeIdx.nodes.push(
+        p_nodeAndNodeIdx.node.nodes.push(
             move.toUpperCase().indexOf(" B ")>0 ? {
                 B: ''
             } : {W: ''}

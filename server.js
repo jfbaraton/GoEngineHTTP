@@ -190,9 +190,12 @@ const copyGenMoveOrAnalyze = (engineResp)=>{
         currentRes.status(200).send(returnedValue[0][0]);
         child && child.stdin && child.stdin.write("\n");
         currentRes = null;
+    } else if (engineResp && engineResp.length && engineResp === "= \n\n"){
+        currentRes.status(200).send(engineResp);
     } else {
-        //console.log('temporary response')
+        console.log('temporary response &'+engineResp+"&")
     }
+
 }
 
 const currentBehaviour = copyGenMoveOrAnalyze;
@@ -288,18 +291,21 @@ router.route('/engine').post((req, res) => {
             }
         } else {
             let currentGame = currentSGF ? sgf.parse(currentSGF) : sgfutils.getEmptySGF();
-            // we need to keep some incremental record of SGF, used by engine
-            if(cmd.indexOf("play ") === 0) {
-                let lastNodeAndIdx = sgfutils.getlastNodeAndIdx({node:currentGame.gameTrees[0], nodeIdx:0})
-                sgfutils.addMovetoSGF(lastNodeAndIdx,cmd)
-            } else if (cmd.indexOf("undo") === 0) {
-                let lastNodeAndIdx = sgfutils.getlastNodeAndIdx({node:currentGame.gameTrees[0], nodeIdx:0})
-                sgfutils.deleteVariation(lastNodeAndIdx.node, lastNodeAndIdx.nodeIdx);
-            } else if (cmd.indexOf("clear_board") === 0) {
-                currentGame = sgfutils.getEmptySGF();
-            }
-            // TODO genmove: to be GTP compliant, we need to add the move to currentSGF after choosing it...
-            // for now, the caller MUST give all the playMove cmds when they don't specify the full currentSGF in the post body
+
+            cmd.split("\n").forEach((oneCMD) => {
+                // we need to keep some incremental record of SGF, used by engine
+                if(oneCMD.indexOf("play ") === 0) {
+                    let lastNodeAndIdx = sgfutils.getlastNodeAndIdx({node:currentGame.gameTrees[0], nodeIdx:0})
+                    sgfutils.addMovetoSGF(lastNodeAndIdx,oneCMD)
+                } else if (oneCMD.indexOf("undo") === 0) {
+                    let lastNodeAndIdx = sgfutils.getlastNodeAndIdx({node:currentGame.gameTrees[0], nodeIdx:0})
+                    sgfutils.deleteVariation(lastNodeAndIdx.node, lastNodeAndIdx.nodeIdx);
+                } else if (oneCMD.indexOf("clear_board") === 0) {
+                    currentGame = sgfutils.getEmptySGF();
+                }
+                // TODO genmove: to be GTP compliant, we need to add the move to currentSGF after choosing it...
+                // for now, the caller MUST give all the playMove cmds when they don't specify the full currentSGF in the post body
+        });
             currentSGF = sgf.generate(currentGame);
             console.log("updated SGF from CMD: \n",currentSGF);
         }
