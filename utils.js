@@ -1,4 +1,5 @@
 var sgf = require('smartgame');
+var smartgamer = require('smartgamer');
 
 // how many points can you lose in one move and still consider it "joseki"?
 //const JOSEKI_MARGIN = 2.3;
@@ -7,28 +8,6 @@ const JOSEKI_MARGIN = 4;
 module.exports = {
     getEmptySGF: function() {
         return sgf.parse('(;GM[1]FF[4]CA[UTF-8]KM[7.5]SZ[19])');
-    },
-
-    makeNodeFromOGS: function(ogsMove, BorW) {
-        let result = {
-            //C:ogsMove.description+(ogsMove.category? ogsMove.category : "")
-            C: (ogsMove.description || "").replaceAll('[','(').replaceAll(']',')')/*+(ogsMove.category? ogsMove.category : "")*/
-        };
-        //if(!result.C) delete C;
-        //console.log('converting '+ogsMove.placement+ " for "+BorW)
-        if(ogsMove.placement && ogsMove.placement !== "root") {
-            //console.log('converting to #'+this.humanToSgfCoord(ogsMove.placement)+'#')
-            if (BorW === 'B') {
-                result.B = this.humanToSgfCoord(ogsMove.placement);
-            } else if (BorW === 'W') {
-                result.W = this.humanToSgfCoord(ogsMove.placement);
-            }
-        } else if (result.C){
-            result.GC = result.C;
-            //delete result.C
-        }
-
-        return result;
     },
 
     yCoordinateFor: function yCoordinateFor(y) {
@@ -49,8 +28,8 @@ module.exports = {
     // human to sgfCoord
     humanToSgfCoord: function coordinatesFor(moveHumanString) {
         if(!moveHumanString || typeof moveHumanString !== "string" || moveHumanString === "root") return null;
-        if(moveHumanString === "pass") return "";
-        let x = moveHumanString.substring(0,1).charCodeAt(0)-'A'.charCodeAt(0);
+        if(moveHumanString === "pass" || moveHumanString === "PASS") return "";
+        let x = moveHumanString.toUpperCase().substring(0,1).charCodeAt(0)-'A'.charCodeAt(0);
         if(x>=8) x--; // letter 'i' is skipped
         const y = 19-parseInt(moveHumanString.substring(1));
         return this.pointToSgfCoord({y: y, x:x});
@@ -121,7 +100,6 @@ module.exports = {
         return ALL_POSSIBLE_TRANSFORMS;
     },
 
-
     getIdentityTransform:function(){
         // diagonal means symmetry along bot-left to top-right diagonal
         // horizontal means symmetry that transforms left to right
@@ -167,6 +145,7 @@ module.exports = {
         }
         return target;
     },
+
     // if any availableTransform transforms sourcePoint into targetPoint, return them. otherwise return null
     revertMove:function(sourcePoint, oneTransform){
         if(sourcePoint.pass) {return sourcePoint;}
@@ -229,6 +208,20 @@ module.exports = {
             }
         }
         return {node:nodeAndNodeIdx.node, nodeIdx:nodeAndNodeIdx.nodeIdx-1};
+    },
+
+    // returns {node:node, nodeIdx:nodeIdx} or null. goes to the end of all first sequences
+    getlastNodeAndIdx: function(p_nodeAndNodeIdx) {
+        let nodeAndNodeIdx = p_nodeAndNodeIdx
+        if(!nodeAndNodeIdx ||!nodeAndNodeIdx.node || !nodeAndNodeIdx.node.nodes || !nodeAndNodeIdx.node.nodes.length || nodeAndNodeIdx.nodeIdx>=nodeAndNodeIdx.node.nodes.length){
+            console.log('sth wrong with ', nodeAndNodeIdx.node, nodeAndNodeIdx.nodeIdx);
+            return null;
+        }
+        while(nodeAndNodeIdx.sequences && nodeAndNodeIdx.sequences.length && nodeAndNodeIdx.sequences[0].nodes && nodeAndNodeIdx.sequences[0].nodes.length) {
+            nodeAndNodeIdx = {node:nodeAndNodeIdx.sequences[0], nodeIdx:0}
+        }
+
+        return {node:nodeAndNodeIdx.node, nodeIdx:nodeAndNodeIdx.node.nodes.length-1};
     },
 
     isAcceptableMoveIdxOLD: function(node, nodeIdx) {
@@ -1009,6 +1002,38 @@ module.exports = {
         return initCMD+"kata-analyze "+((cursorMoveNumber<=1 || typeof lastNode.W !== "undefined")? "B" : "W" )+" 50\n";
     },
 
+
+    addCMDtoSGF : function(SGF, gtpCMD) {
+        let lastNodeAndIdx = this.getlastNodeAndIdx({node:SGF.gameTrees[0], nodeIdx:0})
+
+    },
+
+    addMovetoSGF : function(p_nodeAndNodeIdx, move) {
+        let SGFmove = this.humanToSgfCoord(move.split(" ").slice(-1))
+        p_nodeAndNodeIdx.nodes.push(
+            move.toUpperCase().indexOf(" B ")>0 ? {
+                B: SGFmove
+            } : {W: SGFmove}
+        )
+    },
+
+    addPasstoSGF : function(p_nodeAndNodeIdx, move) {
+        //let lastMoveNode = p_nodeAndNodeIdx.nodes[p_nodeAndNodeIdx.nodeIdx]
+        /*let addedMove = {
+            nodes: [typeof lastMoveNode.W !== "undefined" ? {
+                B: ''
+            } : {W: ''}
+            ],
+            parent :node,
+            sequences:[]
+        };
+        node.sequences.push(addedMove);*/
+        p_nodeAndNodeIdx.nodes.push(
+            move.toUpperCase().indexOf(" B ")>0 ? {
+                B: ''
+            } : {W: ''}
+        )
+    },
 
     savePositionsAndContinue : function(OGSPositions, joseki_id, emptySGF, current_node, req, res, isLast) {
 

@@ -227,7 +227,7 @@ const resetEngine = () => {
         if(data && data.indexOf('GTP ready, beginning main protocol loop')>=0) {
             console.log('Engine is READY Err')
 
-            currentSGF = '(;GM[1]FF[4]CA[UTF-8]KM[7.5]SZ[19])';
+            currentSGF = null;
             isEngineStarting = false;
             if(currentRes) {
                 console.log('closed calling POST')
@@ -286,6 +286,22 @@ router.route('/engine').post((req, res) => {
                 cmd = deltaCMD+body.cmd;
                 currentSGF = body.currentSGF;
             }
+        } else {
+            let currentGame = currentSGF ? sgf.parse(currentSGF) : sgfutils.getEmptySGF();
+            // we need to keep some incremental record of SGF, used by engine
+            if(cmd.indexOf("play ") === 0) {
+                let lastNodeAndIdx = sgfutils.getlastNodeAndIdx({node:currentGame.gameTrees[0], nodeIdx:0})
+                sgfutils.addMovetoSGF(lastNodeAndIdx,cmd)
+            } else if (cmd.indexOf("undo") === 0) {
+                let lastNodeAndIdx = sgfutils.getlastNodeAndIdx({node:currentGame.gameTrees[0], nodeIdx:0})
+                sgfutils.deleteVariation(lastNodeAndIdx.node, lastNodeAndIdx.nodeIdx);
+            } else if (cmd.indexOf("clear_board") === 0) {
+                currentGame = sgfutils.getEmptySGF();
+            }
+            // TODO genmove: to be GTP compliant, we need to add the move to currentSGF after choosing it...
+            // for now, the caller MUST give all the playMove cmds when they don't specify the full currentSGF in the post body
+            currentSGF = sgf.generate(currentGame);
+            console.log("updated SGF from CMD: \n",currentSGF);
         }
         console.log('send cmd to engine: #', cmd, "#");
         currentRes = res;
