@@ -6,6 +6,7 @@ let app = express();
 let router = express.Router();
 let sgf = require('smartgame');
 let sgfutils  = require('./utils');
+const {getGrid} = require("./utils");
 
 let exec = require('child_process').exec;
 let isEngineOn = false;
@@ -14,6 +15,7 @@ let currentRes = null;
 let result = '';
 let child = null;
 let currentSGF = null;
+let currentGame = currentSGF ? sgf.parse(currentSGF) : sgfutils.getEmptySGF();
 // C:\Users\yamak\.katrain\katago-v1.7.0-gpu-opencl-windows-x64.exe gtp -model C:\Users\yamak\.katrain\g170-b40c256x2-s5095420928-d1229425124.bin.gz -config C:\Users\yamak\.katrain\fast_analysis_config.cfg
 //const engineStartCmd = 'C:\\Users\\yamak\\.katrain\\katago-v1.7.0-gpu-opencl-windows-x64.exe gtp -model C:\\Users\\yamak\\.katrain\\g170-b40c256x2-s5095420928-d1229425124.bin.gz -config C:\\Users\\yamak\\.katrain\\fast_analysis_config.cfg';
 const engineStartCmd = '/Users/jeff/Documents/homebrew/bin/katago gtp -model /Users/jeff/Documents/go/kata1-b40c256-s11840935168-d2898845681.bin.gz -config /Users/jeff/Documents/homebrew/Cellar/katago/1.11.0/share/katago/configs/gtp_example.cfg';
@@ -73,9 +75,9 @@ const myEngineSettings = { // priority in this order
     isChooseBestMove : "yes",
     isChooseRandomMove : "yes",
 
-    loss_limit : 2, // "accepted" loss threshold
+    loss_limit : 4, // "accepted" loss threshold
 
-    preferShape : null, //"keima", "tobi", "hane", "cut", "crosscut", "nobi", "kosumi"
+    preferShape : ["daidaigeima","ogeima", "keima", "sangenbiraki", "nikentobi", "tobi"], //"daidaigeima","ogeima", "keima", "sangenbiraki" (3-space jump), "nikentobi", "tobi", "hane", "cut", "crosscut", "nobi", "kosumi"
 
     isTenuki : "yes", // favors playing as far as possible from last move
 
@@ -93,7 +95,7 @@ const myEngineSettingNames = [ // priority in this order
     "loss_limit",
 
     // move preferences
-    "preferShape", //"keima", "tobi", "hane", "cut", "crosscut", "nobi", "kosumi"
+    "preferShape", //"daidaigeima","ogeima", "keima", "sangenbiraki" (3-space jump), "nikentobi", "tobi", "hane", "cut", "crosscut", "nobi", "kosumi"
 
     "isTenuki", // favors playing as far as possible from last move
 
@@ -105,8 +107,11 @@ const myEngineSettingNames = [ // priority in this order
 ];
 
 const chooseKataMove = (kataMoves) => {
+    //console.log("chooseKataMove SGF: \n",currentSGF);
+    const currentGame = sgf.parse(currentSGF)
+    //console.log("chooseKataMove game: \n",currentGame);
     let kata_filtered_moves = kataMoves.filter(oneMove => kataMoves[0][1]-myEngineSettings.loss_limit < oneMove[1]).sort((moveA, moveB)=>(moveB[1]-moveA[1]))
-
+    let grid = null;
     console.log("chooseKataMove: before ("+kata_filtered_moves.length+")", kata_filtered_moves);
     let currentChoice = null;
     let settingIdx = 4;
@@ -116,7 +121,22 @@ const chooseKataMove = (kataMoves) => {
         if(myEngineSettings[settingName] && myEngineSettings[settingName] !== "no") {
             //console.log("chooseKataMove: "+settingName+"("+kata_filtered_moves.length+")", currentChoice[0])
             switch (settingName) {
-                case "preferShape": //"keima", "tobi", "hane", "cut", "crosscut", "nobi", "kosumi"}
+                case "preferShape":  //"daidaigeima","ogeima", "keima", "sangenbiraki" (3-space jump), "nikentobi", "tobi", "hane", "cut", "crosscut", "nobi", "kosumi"
+                    console.log("preferShape: "+"("+myEngineSettings[settingName]+")")
+                    grid = grid === null ? sgfutils.getGrid(currentGame) : grid;
+                    /*if("keima" === myEngineSettings[settingName]) {
+                        kata_filtered_moves = kata_filtered_moves.filter(oneMove => sgfutils.isKeima(sgfutils.humanToPoint(oneMove[0]),grid))
+                        console.log("iskeima: "+"("+kata_filtered_moves.length+")")
+                    }*/
+                    /*kata_filtered_moves = kata_filtered_moves.filter(oneMove =>
+                        (myEngineSettings[settingName].indexOf("keima") === -1 || sgfutils.isKeima(sgfutils.humanToPoint(oneMove[0]),grid))
+                    )*/
+                    kata_filtered_moves = kata_filtered_moves.filter(oneMove => {
+                        let moveAsPoint = sgfutils.humanToPoint(oneMove[0]);
+                        return myEngineSettings[settingName].some((oneShape) =>
+                            sgfutils.isShape(moveAsPoint,sgfutils[oneShape+'Shapes'], grid)
+                        )
+                    })
                     break;
                 case "isTenuki": // favors playing as far as possible from last move
 
@@ -130,8 +150,10 @@ const chooseKataMove = (kataMoves) => {
                     console.log("isTerritorial: "+"("+kata_filtered_moves.length+")")
                     break;
                 case "isDistantMove": // prefers distant moves
+                    grid = grid === null ? sgfutils.getGrid(currentGame) : grid;
                     break;
                 case "isContactMove": // prefers contact moves
+                    grid = grid === null ? sgfutils.getGrid(currentGame) : grid;
                     break;
 
             }
@@ -231,6 +253,7 @@ const resetEngine = () => {
             console.log('Engine is READY Err')
 
             currentSGF = null;
+            currentGame = currentSGF ? sgf.parse(currentSGF) : sgfutils.getEmptySGF();
             isEngineStarting = false;
             if(currentRes) {
                 console.log('closed calling POST')
@@ -288,9 +311,11 @@ router.route('/engine').post((req, res) => {
                 //console.log("delta CMD   : "+deltaCMD)
                 cmd = deltaCMD+body.cmd;
                 currentSGF = body.currentSGF;
+                currentGame = currentSGF ? sgf.parse(currentSGF) : sgfutils.getEmptySGF();
+                console.log("updated SGF from body: \n",currentSGF);
             }
         } else {
-            let currentGame = currentSGF ? sgf.parse(currentSGF) : sgfutils.getEmptySGF();
+            currentGame = currentSGF ? sgf.parse(currentSGF) : sgfutils.getEmptySGF();
 
             cmd.split("\n").forEach((oneCMD) => {
                 // we need to keep some incremental record of SGF, used by engine
@@ -323,13 +348,44 @@ router.route('/engine').post((req, res) => {
 router.route('/parseKata').post((req, res) => {
     res.status(200).send(parseKataAnalyze(kata_analyze_sample));
 });
+router.route('/testGrid').post((req, res) => {
+
+    currentSGF = "(;GM[1]FF[4]CA[UTF-8]KM[7.5]SZ[19];B[pd];W[qc];B[qd];W[pc];B[oc];W[ob];B[nc];W[dp];B[dd];W[pp])";
+    let currentGame = sgf.parse(currentSGF);
+    let grid = sgfutils.getGrid(currentGame);
+    let resultGrid = JSON.parse(JSON.stringify(grid))
+    for(let i=0; i<19;i++) {
+        for(let j=0; j<19;j++) {
+            if(sgfutils.isKeima({x:i,y:j},grid)) {
+                resultGrid[i][j] = 3;
+                console.log("keima--------------------------------------------")
+            }
+        }
+    }
+    /*let i=1;
+    let j=2;
+    if(sgfutils.isKeima({x:i,y:j},grid)) {
+        resultGrid[i][j] = 3;
+        console.log("keima--------------------------------------------")
+    }
+    i=2;
+    j=1;
+    if(sgfutils.isKeima({x:i,y:j},grid)) {
+        resultGrid[i][j] = 3;
+        console.log("keima--------------------------------------------")
+    }*/
+
+    console.log(JSON.stringify(resultGrid).replaceAll("],[","],\n[" ));
+
+    res.status(200).send("OK");
+});
 router.route('/testDelta').post((req, res) => {
     const body = { ...req.body};
     //currentSGF   = null; // start with clear
     //currentSGF   = "(;GM[1]FF[4]CA[UTF-8]KM[7.5]SZ[19])";  // start with target first move
     //currentSGF = "(;GM[1]FF[4]CA[UTF-8]KM[7.5]SZ[19];B[pd];W[qc];B[qd];W[pc];B[oc];W[ob])";
     currentSGF = "(;GM[1]FF[4]CA[UTF-8]KM[7.5]SZ[19];B[pd];W[qc];B[qd];W[pc];B[oc];W[ob];B[nc])";
-
+    currentGame = currentSGF ? sgf.parse(currentSGF) : sgfutils.getEmptySGF();
     let cmd = body.cmd;
     if(body.currentSGF) {
         if(body.currentSGF === currentSGF) {
@@ -343,6 +399,7 @@ router.route('/testDelta').post((req, res) => {
             console.log("delta CMD   : "+deltaCMD)
             cmd = deltaCMD+body.cmd;
             currentSGF = body.currentSGF;
+            currentGame = currentSGF ? sgf.parse(currentSGF) : sgfutils.getEmptySGF();
         }
     }
     console.log('send cmd to engine: #', cmd, "#");

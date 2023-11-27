@@ -34,6 +34,16 @@ module.exports = {
         const y = 19-parseInt(moveHumanString.substring(1));
         return this.pointToSgfCoord({y: y, x:x});
     },
+    // human to point
+    humanToPoint: function coordinatesFor(moveHumanString) {
+        console.log("humanToSgfCoord ", moveHumanString);
+        if(!moveHumanString || typeof moveHumanString !== "string" || moveHumanString === "root") return null;
+        if(moveHumanString === "pass" || moveHumanString === "PASS") return "";
+        let x = moveHumanString.toUpperCase().substring(0,1).charCodeAt(0)-'A'.charCodeAt(0);
+        if(x>=8) x--; // letter 'i' is skipped
+        const y = 19-parseInt(moveHumanString.substring(1));
+        return {y: y, x:x};
+    },
 
     sgfCoordToPoint:function(_18a){
         if(!_18a||_18a==="tt"){
@@ -1007,6 +1017,176 @@ module.exports = {
     addCMDtoSGF : function(SGF, gtpCMD) {
         let lastNodeAndIdx = this.getlastNodeAndIdx({node:SGF.gameTrees[0], nodeIdx:0})
 
+    },
+
+    isKeima : function(move, grid) {
+        return this.isShape(move,this.keimaShapes, grid)
+
+    },
+    //"daidaigeima","ogeima", "keima", "sangenbiraki" (3-space jump), "nikentobi", "tobi", "hane", "cut", "crosscut", "nobi", "kosumi"
+    // top left is the move
+    // 3 = any stone color, even empty
+    // 4 = any stone color, but NOT empty
+    daidaigeimaShapes : [
+        [
+            [4,0,0,0,3],
+            [3,0,0,0,4]
+        ],
+        [
+            [4,3],
+            [0,0],
+            [0,0],
+            [0,0],
+            [3,4]
+        ]
+    ],
+    ogeimaShapes : [
+        [
+            [4,0,0,3],
+            [3,0,0,4]
+        ],
+        [
+            [4,3],
+            [0,0],
+            [0,0],
+            [3,4]
+        ]
+    ],
+    keimaShapes : [
+        [
+            [4,0,3],
+            [3,0,4]
+        ],
+        [
+            [4,3],
+            [0,0],
+            [3,4]
+        ]
+    ],
+    sangenbirakiShapes : [ //"sangenbiraki" (3-space jump)
+        [
+            [4,0,0,0,4]
+        ],
+        [
+            [4],
+            [0],
+            [0],
+            [0],
+            [4]
+        ]
+    ],
+    nikentobiShapes : [ // (2-space jump)
+        [
+            [4,0,0,4]
+        ],
+        [
+            [4],
+            [0],
+            [0],
+            [4]
+        ]
+    ],
+    tobiShapes : [ // (1-space jump)
+        [
+            [4,0,4]
+        ],
+        [
+            [4],
+            [0],
+            [4]
+        ]
+    ],
+    /*nobiShapes : [ // (extension) // TODO color check
+        [
+            [4,4]
+        ],
+        [
+            [4],
+            [4]
+        ]
+    ],*/
+    kosumiShapes : [ // diagonal
+        [
+            [4,0],
+            [0,4]
+        ]
+    ],
+
+    isShape : function(move, shapes, grid) {
+
+        for (let shapeIdx = 0; shapeIdx<shapes.length;shapeIdx++) {
+            //console.log("shapeIdx:",shapeIdx);
+            for (let invertI = 1; invertI>=-1;invertI = invertI-2) {
+                for (let invertJ = 1; invertJ>=-1;invertJ = invertJ-2) {
+                    let canBe = true;
+                    for (let i = 0; i < shapes[shapeIdx].length && canBe; i++) {
+                        for (let j = 0; j < shapes[shapeIdx][i].length && canBe; j++) {
+                            if (i === 0 && j === 0) continue;
+                            let testx = move.x + i*invertI;
+                            let testy = move.y + j*invertJ;
+                            //console.log("i,j:", i, j, shapes[shapeIdx][i][j], " =?= ", testx >= 0 && testx < 19 && testy >= 0 && testy < 19 && grid[testx][testy]);
+                            canBe = canBe && testx >= 0 && testx < 19 && testy >= 0 && testy < 19 && (
+                                shapes[shapeIdx][i][j] === grid[testx][testy] ||
+                                shapes[shapeIdx][i][j] === 4 && grid[testx][testy] > 0 ||
+                                shapes[shapeIdx][i][j] === 3
+                            )
+                        }
+                    }
+                    if (canBe) return true;
+                }
+            }
+        }
+
+    },
+
+    getGrid : function(SGF) {
+        let grid = [ // 0 = no stone, 1= black, 2= white. we don't care about captures and liberties
+            [0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0],
+
+            [0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0]
+        ];
+
+        let nodeIdx= 0;
+        let nodeParent = SGF.gameTrees[0]
+        let nodes = nodeParent.nodes;
+        let lastNode = null;
+        let cursorMoveNumber = 0;
+        //console.log("game tree ",SGFgame.gameTrees[0])
+        while (nodeIdx < nodes.length) {
+            cursorMoveNumber++;
+            //console.log("nodes.length ",nodes.length, nodes)
+            lastNode = nodes[nodeIdx];
+            const coords = this.sgfCoordToPoint(typeof lastNode.B === "undefined" ? lastNode.W : lastNode.B);
+            if(coords && !coords.pass){
+                grid[coords.x][coords.y] = typeof lastNode.B === "undefined" ? 2 : 1;
+            }
+
+            nodeIdx++;
+            if(nodeIdx >= nodes.length && nodeParent.sequences && nodeParent.sequences.length && nodeParent.sequences[0].nodes) {
+                nodeIdx = 0;
+                nodeParent = nodeParent.sequences[0]
+                nodes = nodeParent.nodes;
+            }
+
+        }
+        return grid;
     },
 
     addMovetoSGF : function(p_nodeAndNodeIdx, move) {
