@@ -77,7 +77,8 @@ const myEngineSettings = { // priority in this order
 
     loss_limit : 4, // "accepted" loss threshold
 
-    preferShape : ["daidaigeima","ogeima", "keima", "sangenbiraki", "nikentobi", "tobi"], //"daidaigeima","ogeima", "keima", "sangenbiraki" (3-space jump), "nikentobi", "tobi", "hane", "cut", "crosscut", "nobi", "kosumi"
+    //"daidaigeima","ogeima", "keima", "sangenbiraki" (3-space jump), "nikentobi", "tobi", "hane", "cut", "crosscut", "nobi", "kosumi"
+    preferShape : ["daidaigeima","ogeima", "keima", "sangenbiraki", "nikentobi", "tobi", "kosumi"],
 
     isTenuki : "yes", // favors playing as far as possible from last move
 
@@ -112,7 +113,7 @@ const chooseKataMove = (kataMoves) => {
     //console.log("chooseKataMove game: \n",currentGame);
     let kata_filtered_moves = kataMoves.filter(oneMove => kataMoves[0][1]-myEngineSettings.loss_limit < oneMove[1]).sort((moveA, moveB)=>(moveB[1]-moveA[1]))
     let grid = null;
-    console.log("chooseKataMove: before ("+kata_filtered_moves.length+")", kata_filtered_moves);
+    //console.log("chooseKataMove: before ("+kata_filtered_moves.length+")", kata_filtered_moves);
     let currentChoice = null;
     let settingIdx = 4;
     while(kata_filtered_moves.length >1 && settingIdx<myEngineSettingNames.length) {
@@ -122,15 +123,8 @@ const chooseKataMove = (kataMoves) => {
             //console.log("chooseKataMove: "+settingName+"("+kata_filtered_moves.length+")", currentChoice[0])
             switch (settingName) {
                 case "preferShape":  //"daidaigeima","ogeima", "keima", "sangenbiraki" (3-space jump), "nikentobi", "tobi", "hane", "cut", "crosscut", "nobi", "kosumi"
-                    console.log("preferShape: "+"("+myEngineSettings[settingName]+")")
+                    //console.log("preferShape: "+"("+myEngineSettings[settingName]+")")
                     grid = grid === null ? sgfutils.getGrid(currentGame) : grid;
-                    /*if("keima" === myEngineSettings[settingName]) {
-                        kata_filtered_moves = kata_filtered_moves.filter(oneMove => sgfutils.isKeima(sgfutils.humanToPoint(oneMove[0]),grid))
-                        console.log("iskeima: "+"("+kata_filtered_moves.length+")")
-                    }*/
-                    /*kata_filtered_moves = kata_filtered_moves.filter(oneMove =>
-                        (myEngineSettings[settingName].indexOf("keima") === -1 || sgfutils.isKeima(sgfutils.humanToPoint(oneMove[0]),grid))
-                    )*/
                     kata_filtered_moves = kata_filtered_moves.filter(oneMove => {
                         let moveAsPoint = sgfutils.humanToPoint(oneMove[0]);
                         return myEngineSettings[settingName].some((oneShape) =>
@@ -157,7 +151,7 @@ const chooseKataMove = (kataMoves) => {
                     break;
 
             }
-            console.log("chooseKataMove: after "+settingName+"("+kata_filtered_moves.length+")", kata_filtered_moves)
+            //console.log("chooseKataMove: after "+settingName+"("+kata_filtered_moves.length+")", kata_filtered_moves)
         }
         settingIdx++;
     }
@@ -212,11 +206,11 @@ const copyGenMoveOrAnalyze = (engineResp)=>{
         currentRes.status(200).send(returnedValue[0][0]);
         child && child.stdin && child.stdin.write("\n");
         currentRes = null;
-    } else if (engineResp && engineResp.length && engineResp === "= \n\n"){
+    }/* else if (engineResp && engineResp.length && engineResp === "= \n\n"){ // TODO: needed for real GTP, but messes up with kata-analyze cmd
         currentRes.status(200).send(engineResp);
     } else {
         console.log('temporary response &'+engineResp+"&")
-    }
+    }*/
 
 }
 
@@ -285,7 +279,7 @@ app.use('/api', router);
 
 
 router.use((request, response, next) => {
-  console.log('middlewarez');
+  //console.log('middlewarez');
   next();
 });
  

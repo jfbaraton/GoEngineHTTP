@@ -26,7 +26,7 @@ module.exports = {
 
     // human to sgfCoord
     humanToSgfCoord: function coordinatesFor(moveHumanString) {
-        console.log("humanToSgfCoord ", moveHumanString);
+        //console.log("humanToSgfCoord ", moveHumanString);
         if(!moveHumanString || typeof moveHumanString !== "string" || moveHumanString === "root") return null;
         if(moveHumanString === "pass" || moveHumanString === "PASS") return "";
         let x = moveHumanString.toUpperCase().substring(0,1).charCodeAt(0)-'A'.charCodeAt(0);
@@ -36,7 +36,7 @@ module.exports = {
     },
     // human to point
     humanToPoint: function coordinatesFor(moveHumanString) {
-        console.log("humanToSgfCoord ", moveHumanString);
+        //console.log("humanToSgfCoord ", moveHumanString);
         if(!moveHumanString || typeof moveHumanString !== "string" || moveHumanString === "root") return null;
         if(moveHumanString === "pass" || moveHumanString === "PASS") return "";
         let x = moveHumanString.toUpperCase().substring(0,1).charCodeAt(0)-'A'.charCodeAt(0);
@@ -1107,8 +1107,9 @@ module.exports = {
     ],*/
     kosumiShapes : [ // diagonal
         [
-            [4,0],
-            [0,4]
+            [4,0,3],
+            [0,4,0],
+            [3,0,3]
         ]
     ],
 
