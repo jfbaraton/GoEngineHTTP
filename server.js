@@ -78,12 +78,13 @@ const myEngineSettings = { // priority in this order
     loss_limit : 4, // "accepted" loss threshold
 
     //"daidaigeima","ogeima", "keima", "sangenbiraki" (3-space jump), "nikentobi", "tobi", "hane", "cut", "crosscut", "nobi", "kosumi"
-    preferShape : ["daidaigeima","ogeima", "keima", "sangenbiraki", "nikentobi", "tobi", "kosumi"],
+    // TODO not working for now: requires to consider all directions simultaneusly, maybe place stone at center of pattern, or in 1,1/2,2
+    preferShape : null ,// [/*"empty",*/ "daidaigeima","ogeima", "keima", "sangenbiraki", "nikentobi", "tobi", "kosumi"],
 
     isTenuki : "yes", // favors playing as far as possible from last move
 
     isInfluencial: "yes", // prefers line 4 and above
-    isTerritorial: "yes", // prefers line 3 and below
+    isTerritorial: "no", // prefers line 3 and below
 
     isDistantMove: "yes", // prefers distant moves
     isContactMove: "no" // prefers contact moves
@@ -120,20 +121,27 @@ const chooseKataMove = (kataMoves) => {
         currentChoice = pickKataMoveByIdx(kata_filtered_moves)
         const settingName = myEngineSettingNames[settingIdx];
         if(myEngineSettings[settingName] && myEngineSettings[settingName] !== "no") {
-            //console.log("chooseKataMove: "+settingName+"("+kata_filtered_moves.length+")", currentChoice[0])
+            console.log("chooseKataMove: "+settingName+"("+kata_filtered_moves.length+")", currentChoice[0])
             switch (settingName) {
                 case "preferShape":  //"daidaigeima","ogeima", "keima", "sangenbiraki" (3-space jump), "nikentobi", "tobi", "hane", "cut", "crosscut", "nobi", "kosumi"
                     //console.log("preferShape: "+"("+myEngineSettings[settingName]+")")
                     grid = grid === null ? sgfutils.getGrid(currentGame) : grid;
                     kata_filtered_moves = kata_filtered_moves.filter(oneMove => {
                         let moveAsPoint = sgfutils.humanToPoint(oneMove[0]);
-                        return myEngineSettings[settingName].some((oneShape) =>
-                            sgfutils.isShape(moveAsPoint,sgfutils[oneShape+'Shapes'], grid)
+                        return myEngineSettings[settingName].some((oneShape) => {
+                                const isShape = sgfutils.isShape(moveAsPoint, sgfutils[oneShape + 'Shapes'], grid);
+                                if(isShape) {
+                                    console.log(oneMove[0]+" is "+oneShape);
+                                }
+                                return isShape;
+                            }
                         )
                     })
                     break;
                 case "isTenuki": // favors playing as far as possible from last move
-
+                    const distanceFromLastMoveGrid = sgfutils.getDistanceFromLastMoveGrid(currentGame);
+                    kata_filtered_moves = kata_filtered_moves.filter(oneMove => isInfluencialMove(oneMove[0]))
+                    console.log("isInfluencial: "+"("+kata_filtered_moves.length+")")
                     break;
                 case "isInfluencial": // prefers line 4 and above
                     kata_filtered_moves = kata_filtered_moves.filter(oneMove => isInfluencialMove(oneMove[0]))
@@ -151,7 +159,7 @@ const chooseKataMove = (kataMoves) => {
                     break;
 
             }
-            //console.log("chooseKataMove: after "+settingName+"("+kata_filtered_moves.length+")", kata_filtered_moves)
+            console.log("chooseKataMove: after "+settingName+"("+kata_filtered_moves.length+")", kata_filtered_moves)
         }
         settingIdx++;
     }
@@ -370,6 +378,8 @@ router.route('/testGrid').post((req, res) => {
     }*/
 
     console.log(JSON.stringify(resultGrid).replaceAll("],[","],\n[" ));
+    console.log(JSON.stringify(sgfutils.getDistanceFromAllMoveGrid(currentGame,grid)).replaceAll("],[","],\n[" ));
+    console.log(JSON.stringify(sgfutils.getDistanceFromLastMoveGrid(currentGame)).replaceAll("],[","],\n[" ));
 
     res.status(200).send("OK");
 });

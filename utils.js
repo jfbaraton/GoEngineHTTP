@@ -1027,6 +1027,22 @@ module.exports = {
     // top left is the move
     // 3 = any stone color, even empty
     // 4 = any stone color, but NOT empty
+    /*emptyShapes : [
+        [
+            [4,0,0,0,0],
+            [0,0,0,0,0],
+            [0,0,0,0,0],
+            [0,0,0,0,0],
+            [0,0,0,0,0]
+        ],
+        [
+            [4,3],
+            [0,0],
+            [0,0],
+            [0,0],
+            [3,4]
+        ]
+    ],*/
     daidaigeimaShapes : [
         [
             [4,0,0,0,3],
@@ -1138,6 +1154,88 @@ module.exports = {
             }
         }
 
+    },
+
+    getDistanceFromLastMoveGrid : function(SGF) {
+        let grid = [ // 0 = no stone, 1= black, 2= white. we don't care about captures and liberties
+            [0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0],
+
+            [0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0]
+        ];
+
+        const lastNodeAndIdx = this.getlastNodeAndIdx({node:SGF.gameTrees[0],nodeIdx:0});
+        //console.log("lastNodeAndIdx ",lastNodeAndIdx)
+        const lastnode = lastNodeAndIdx.node.nodes[lastNodeAndIdx.nodeIdx];
+        const lastMoveCoords = this.sgfCoordToPoint(typeof lastnode.B === "undefined" ? lastnode.W: lastnode.B);
+        if(lastMoveCoords && !lastMoveCoords.pass){
+            grid[lastMoveCoords.x][lastMoveCoords.y] = 1;
+        }
+
+        return this.getDistanceFromAllMoveGrid(SGF,grid);
+    },
+
+    getDistanceFromAllMoveGrid : function(SGF, grid) {
+        let resultGrid = JSON.parse(JSON.stringify(grid))
+        for(let i=0;i<19;i++) {
+            for(let j=0;j<19;j++) {
+                resultGrid[i][j] = grid[i][j] ? 0 : -1;
+            }
+        }
+        // segmentation
+        const board_size = 19
+        //gtp_printf("= ZOK before segmentation");
+        let is_seg_change = 1; // 1 if the segmentation pass caused a change
+        let current_distance = -1;
+        while(is_seg_change){
+            is_seg_change = 0;
+            current_distance++;
+            //gtp_printf("= ZOK before segmentation iteration %d\n\n",current_distance);
+
+            for (ai = 0; ai < board_size; ai++) {
+                //gtp_printf("\n");
+                for (aj = 0; aj < board_size; aj++) {
+                    //gtp_printf("%d ",segmented_board[POS(ai,aj)]);
+                    if(resultGrid[ai][aj] === current_distance){
+                        // check all 4 neighbors for being uncalculated (-1)
+                        if(ai > 0 && resultGrid[ai-1][aj] === -1) {
+                            is_seg_change = 1;
+                            resultGrid[ai-1][aj] = current_distance+1;
+                        }
+                        if(ai < board_size-1 && resultGrid[ai+1][aj] === -1) {
+                            is_seg_change = 1;
+                            resultGrid[ai+1][aj] = current_distance+1;
+                        }
+                        if(aj > 0 && resultGrid[ai][aj-1] === -1) {
+                            is_seg_change = 1;
+                            resultGrid[ai][aj-1] = current_distance+1;
+                        }
+                        if(ai < board_size-1 && resultGrid[ai][aj+1] === -1) {
+                            is_seg_change = 1;
+                            resultGrid[ai][aj+1] = current_distance+1;
+                        }
+                    }
+                }
+            }
+        }
+
+        return resultGrid;
     },
 
     getGrid : function(SGF) {
