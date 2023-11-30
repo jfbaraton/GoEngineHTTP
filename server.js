@@ -81,9 +81,9 @@ const myEngineSettings = { // priority in this order
     // TODO not working for now: requires to consider all directions simultaneusly, maybe place stone at center of pattern, or in 1,1/2,2
     preferShape : null ,// [/*"empty",*/ "daidaigeima","ogeima", "keima", "sangenbiraki", "nikentobi", "tobi", "kosumi"],
 
-    isTenuki : "yes", // favors playing as far as possible from last move
+    isTenuki : "no", // favors playing as far as possible from last move
 
-    isInfluencial: "yes", // prefers line 4 and above
+    isInfluencial: "no", // prefers line 4 and above
     isTerritorial: "no", // prefers line 3 and below
 
     isDistantMove: "yes", // prefers distant moves
@@ -114,7 +114,8 @@ const chooseKataMove = (kataMoves) => {
     //console.log("chooseKataMove game: \n",currentGame);
     let kata_filtered_moves = kataMoves.filter(oneMove => kataMoves[0][1]-myEngineSettings.loss_limit < oneMove[1]).sort((moveA, moveB)=>(moveB[1]-moveA[1]))
     let grid = null;
-    //console.log("chooseKataMove: before ("+kata_filtered_moves.length+")", kata_filtered_moves);
+    let distanceFromAllMovesGrid = null;
+    console.log("chooseKataMove: before ("+kata_filtered_moves.length+")", kata_filtered_moves);
     let currentChoice = null;
     let settingIdx = 4;
     while(kata_filtered_moves.length >1 && settingIdx<myEngineSettingNames.length) {
@@ -140,7 +141,12 @@ const chooseKataMove = (kataMoves) => {
                     break;
                 case "isTenuki": // favors playing as far as possible from last move
                     const distanceFromLastMoveGrid = sgfutils.getDistanceFromLastMoveGrid(currentGame);
-                    kata_filtered_moves = kata_filtered_moves.filter(oneMove => isInfluencialMove(oneMove[0]))
+
+                    kata_filtered_moves = kata_filtered_moves.filter(oneMove => {
+                        let moveAsPoint = sgfutils.humanToPoint(oneMove[0]);
+                        if(!moveAsPoint || moveAsPoint.pass) return true;
+                        return distanceFromLastMoveGrid[moveAsPoint.x][moveAsPoint.y] >5
+                    })
                     console.log("isInfluencial: "+"("+kata_filtered_moves.length+")")
                     break;
                 case "isInfluencial": // prefers line 4 and above
@@ -153,9 +159,21 @@ const chooseKataMove = (kataMoves) => {
                     break;
                 case "isDistantMove": // prefers distant moves
                     grid = grid === null ? sgfutils.getGrid(currentGame) : grid;
+                    distanceFromAllMovesGrid = distanceFromAllMovesGrid === null ? sgfutils.getDistanceFromAllMoveGrid(currentGame,grid) : distanceFromAllMovesGrid;
+                    kata_filtered_moves = kata_filtered_moves.filter(oneMove => {
+                        let moveAsPoint = sgfutils.humanToPoint(oneMove[0]);
+                        if(!moveAsPoint || moveAsPoint.pass) return true;
+                        return distanceFromAllMovesGrid[moveAsPoint.x][moveAsPoint.y] >=5
+                    })
                     break;
                 case "isContactMove": // prefers contact moves
                     grid = grid === null ? sgfutils.getGrid(currentGame) : grid;
+                    distanceFromAllMovesGrid = distanceFromAllMovesGrid === null ? sgfutils.getDistanceFromAllMoveGrid(currentGame,grid) : distanceFromAllMovesGrid;
+                    kata_filtered_moves = kata_filtered_moves.filter(oneMove => {
+                        let moveAsPoint = sgfutils.humanToPoint(oneMove[0]);
+                        if(!moveAsPoint || moveAsPoint.pass) return true;
+                        return distanceFromAllMovesGrid[moveAsPoint.x][moveAsPoint.y] === 1;
+                    })
                     break;
 
             }
