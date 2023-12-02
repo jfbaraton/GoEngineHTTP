@@ -470,6 +470,12 @@ router.route('/parseLeela').post((req, res) => {
 	console.log("parseLeela ",oneLine);
     res.status(200).send(parseLeelaAnalyze(oneLine));
 });
+router.route('/parseSai').post((req, res) => {
+    res.status(200).send(parseKataAnalyze(sai_analyze_sample));
+});
+router.route('/parseLeela').post((req, res) => {
+    res.status(200).send(parseKataAnalyze(leela_analyze_sample));
+});
 router.route('/testGrid').post((req, res) => {
 
     currentSGF = "(;GM[1]FF[4]CA[UTF-8]KM[7.5]SZ[19];B[pd];W[qc];B[qd];W[pc];B[oc];W[ob];B[nc];W[dp];B[dd];W[pp])";
