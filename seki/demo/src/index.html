@@ -364,7 +364,8 @@ function getAIHint() {
   // cmd = kata-analyze B 50\n
   // currentSGF = "(;GM[1]FF[4]CA[UTF-8]KM[7.5]SZ[19];B[pd];W[qc];B[qd];W[pc];B[oc];W[ob])";
 
-  let cmd = "kata-analyze " +(node && node.move && node.move.color === "black" ? "W" : "B") + " 50\n";
+  //let cmd = "kata-analyze " +(node && node.move && node.move.color === "black" ? "W" : "B") + " 50\n";
+  let cmd = "lz-analyze " +(node && node.move && node.move.color === "black" ? "W" : "B") + " 1000 minmoves 50\n";
 
   let currentSGF = game.toData(player.getConfig('defaultKifuFormat'));
 
