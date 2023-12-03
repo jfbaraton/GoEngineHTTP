@@ -4,7 +4,7 @@ export default defineConfig({
   publicPath: './src/public',
   root: './src',
   server: {
-    host: 'localhost',
+    host: true,
     port: 4040,
     proxy: {
       '/api': {
