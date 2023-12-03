@@ -477,6 +477,7 @@ router.route('/engine').post((req, res) => {
 		
 		engineFullResponseHolder[0] = '';
         child.stdin.write(cmd);
+		setTimeout(currentBehaviour, 10000, engineFullResponseHolder);
     } else {
         console.log('but engine was dead ', isEngineOn, !!child );
         res.status(400).send('DEAD');
