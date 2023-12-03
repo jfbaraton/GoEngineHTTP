@@ -277,7 +277,7 @@ const parseLeelaAnalyze = (kataAnalyze) => {
     //kata_lines.shift();
     return kata_lines.map(line => {
         return [line.substring(line.indexOf(moveTag)+moveTag.length, line.indexOf(visitsTag)),
-            parseFloat(line.substring(line.indexOf(winrateTag)+winrateTag.length, line.indexOf(priorTag))),
+            parseFloat(line.substring(line.indexOf(winrateTag)+winrateTag.length, line.indexOf(priorTag)))/100.,
             parseFloat(line.substring(line.indexOf(visitsTag)+visitsTag.length, line.indexOf(winrateTag)))
         ]
     })
@@ -324,7 +324,7 @@ const copyGenMoveOrAnalyze = (p_engineResp, p_currentResTime)=>{
         currentRes.status(400).send(null);
 		currentRes = null;
     } else if(currentRes && engineResp && engineResp.length && engineResp.replaceAll('=','').replaceAll('\n','').trim().length){
-		console.log("engineResp ",engineResp);
+		//console.log("engineResp ",engineResp);
         let returnedValue = engineResp.indexOf(visitsTag)>0 ? parseLeelaAnalyze(engineResp): [[engineResp.replaceAll('=','').replaceAll('\n','').trim(),1,100]];
         returnedValue = filterOutDoublonMove(returnedValue);
         returnedValue = chooseKataMove(returnedValue);
@@ -438,7 +438,7 @@ router.route('/engine').post((req, res) => {
                 cmd = deltaCMD+body.cmd;
                 currentSGF = body.currentSGF;
                 currentGame = currentSGF ? sgf.parse(currentSGF) : sgfutils.getEmptySGF();
-                console.log("updated SGF from body: \n",currentSGF);
+                //console.log("updated SGF from body: \n",currentSGF);
             }
         } else {
             currentGame = currentSGF ? sgf.parse(currentSGF) : sgfutils.getEmptySGF();
@@ -458,16 +458,16 @@ router.route('/engine').post((req, res) => {
                 // for now, the caller MUST give all the playMove cmds when they don't specify the full currentSGF in the post body
         });
             currentSGF = sgf.generate(currentGame);
-            console.log("updated SGF from CMD: \n",currentSGF);
+            //console.log("updated SGF from CMD: \n",currentSGF);
         }
-        console.log('send cmd to engine: #', cmd, "#");
+        //console.log('send cmd to engine: #', cmd, "#");
         child.stdin.write("\n");
         currentRes = res;
 		currentResTime = Date.now();
 		
 		engineFullResponseHolder[0] = '';
         child.stdin.write(cmd);
-		setTimeout(currentBehaviour, 15000, engineFullResponseHolder, currentResTime);
+		setTimeout(currentBehaviour, 15000+getRandomInt(10000), engineFullResponseHolder, currentResTime);
     } else {
         console.log('but engine was dead ', isEngineOn, !!child );
         res.status(400).send('DEAD');
