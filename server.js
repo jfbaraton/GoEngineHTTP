@@ -345,7 +345,6 @@ const resetEngine = () => {
     isEngineStarting = true;
     child = exec(engineStartCmd);
 	let currentEngineTime = currentResTime;
-	setTimeout(currentBehaviour, 10000, engineFullResponseHolder)
     child.stdout.on('data', function(data) {
         console.log('stdout: (',""+!!currentRes,')',data && data.length /*&& (data.length > 50 ? data.length : data)*/);
 		if(currentEngineTime !== currentResTime) {
@@ -464,6 +463,7 @@ router.route('/engine').post((req, res) => {
 		
 		engineFullResponseHolder[0] = '';
         child.stdin.write(cmd);
+		setTimeout(currentBehaviour, 10000, engineFullResponseHolder);
     } else {
         console.log('but engine was dead ', isEngineOn, !!child );
         res.status(400).send('DEAD');
