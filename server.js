@@ -352,7 +352,7 @@ const currentBehaviour = copyGenMoveOrAnalyze;
 
 const resetEngine = () => {
     console.log('resetEngine');
-    engineFullResponseHolder[0] = '';
+    engineFullResponseHolder[0] = ''; // TODO: reset on request, remember the current request time
     isEngineOn = true;
     isEngineStarting = true;
     child = exec(engineStartCmd);
@@ -378,7 +378,8 @@ const resetEngine = () => {
     child.stderr.on('data', function(data) {
         //result += data;
         console.log('stderr: ',data && data.length)
-        if(data && data.indexOf('GTP ready, beginning main protocol loop')>=0) {
+        if(data && (data.indexOf('GTP ready, beginning main protocol loop')>=0 ||
+                    data.indexOf('Setting max tree size to')>=0) ) {
             console.log('Engine is READY Err')
 
             currentSGF = null;
