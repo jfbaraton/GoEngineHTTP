@@ -13,6 +13,7 @@ let isEngineOn = false;
 let isEngineStarting = false;
 let currentRes = null;
 const engineFullResponseHolder = [''];
+let currentResTime = Date.now();
 let child = null;
 let currentSGF = null;
 let currentGame = currentSGF ? sgf.parse(currentSGF) : sgfutils.getEmptySGF();
@@ -314,7 +315,7 @@ const filterOutDoublonMove = (moveList) => {
 
 const copyGenMoveOrAnalyze = (p_engineResp)=>{
 	engineResp = p_engineResp[0];
-	console.log("copyGenMoveOrAnalyze" ,engineResp && engineResp.length);
+	console.log("copyGenMoveOrAnalyze ",currentResTime ,engineResp && engineResp.length);
     if(currentRes && engineResp && engineResp.length && engineResp.indexOf(unknownCommandTag)>=0) {
         currentRes.status(400).send(null);
 		currentRes = null;
@@ -343,9 +344,14 @@ const resetEngine = () => {
     isEngineOn = true;
     isEngineStarting = true;
     child = exec(engineStartCmd);
+	let currentEngineTime = currentResTime;
 	setTimeout(currentBehaviour, 10000, engineFullResponseHolder)
     child.stdout.on('data', function(data) {
         console.log('stdout: (',""+!!currentRes,')',data && data.length /*&& (data.length > 50 ? data.length : data)*/);
+		if(currentEngineTime !== currentResTime) {
+			currentEngineTime = currentResTime;
+			engineFullResponseHolder[0] = '';
+		}
         if(currentRes && !isEngineStarting) {
             //currentRes.write(data);
 			engineFullResponseHolder[0] += data;
@@ -452,7 +458,11 @@ router.route('/engine').post((req, res) => {
             console.log("updated SGF from CMD: \n",currentSGF);
         }
         console.log('send cmd to engine: #', cmd, "#");
+        child.stdin.write("\n");
         currentRes = res;
+		currentResTime = Date.now();
+		
+		engineFullResponseHolder[0] = '';
         child.stdin.write(cmd);
     } else {
         console.log('but engine was dead ', isEngineOn, !!child );
