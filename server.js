@@ -12,15 +12,69 @@ let exec = require('child_process').exec;
 let isEngineOn = false;
 let isEngineStarting = false;
 let currentRes = null;
-let result = '';
+const engineFullResponseHolder = [''];
 let child = null;
 let currentSGF = null;
 let currentGame = currentSGF ? sgf.parse(currentSGF) : sgfutils.getEmptySGF();
 // C:\Users\yamak\.katrain\katago-v1.7.0-gpu-opencl-windows-x64.exe gtp -model C:\Users\yamak\.katrain\g170-b40c256x2-s5095420928-d1229425124.bin.gz -config C:\Users\yamak\.katrain\fast_analysis_config.cfg
 //const engineStartCmd = 'C:\\Users\\yamak\\.katrain\\katago-v1.7.0-gpu-opencl-windows-x64.exe gtp -model C:\\Users\\yamak\\.katrain\\g170-b40c256x2-s5095420928-d1229425124.bin.gz -config C:\\Users\\yamak\\.katrain\\fast_analysis_config.cfg';
-const engineStartCmd = '/Users/jeff/Documents/homebrew/bin/katago gtp -model /Users/jeff/Documents/go/kata1-b40c256-s11840935168-d2898845681.bin.gz -config /Users/jeff/Documents/homebrew/Cellar/katago/1.11.0/share/katago/configs/gtp_example.cfg';
+//const engineStartCmd = 'katago gtp -model /home/pi/katago/Katago/cpp/kata1-b18c384nbt-s8040575488-d3801933292.bin.gz -config /home/pi/katago/Katago/cpp/default_gtp.cfg';
+const engineStartCmd = '/home/pi/leelap0/leela-zero/build/leelaz --gtp --noponder -p 1 -t 1 -w /home/pi/leelap0/15b.gz';
+
 const engineClearBoard = "time_settings 0 5 1\nkomi 7.5\nboardsize 19\nclear_board\n";
 const kata_analyze_sample = "info move C3 visits 6 utility 1.04291 winrate 0.992245 scoreMean 14.4587 scoreStdev 16.1808 scoreLead 14.4587 scoreSelfplay 17.096 prior 0.0183468 lcb 0.97559 utilityLcb 0.996279 order 0 pv C3 Q4 R16 info move C17 visits 6 utility 1.04291 winrate 0.992245 scoreMean 14.4587 scoreStdev 16.1808 scoreLead 14.4587 scoreSelfplay 17.096 prior 0.0183468 lcb 0.97559 utilityLcb 0.996279 isSymmetryOf C3 order 1 pv C17 Q16 R4 info move R3 visits 6 utility 1.04291 winrate 0.992245 scoreMean 14.4587 scoreStdev 16.1808 scoreLead 14.4587 scoreSelfplay 17.096 prior 0.0183468 lcb 0.97559 utilityLcb 0.996279 isSymmetryOf C3 order 2 pv R3 D4 C16 info move R17 visits 6 utility 1.04291 winrate 0.992245 scoreMean 14.4587 scoreStdev 16.1808 scoreLead 14.4587 scoreSelfplay 17.096 prior 0.0183468 lcb 0.97559 utilityLcb 0.996279 isSymmetryOf C3 order 3 pv R17 D16 C4 info move D4 visits 6 utility 1.03122 winrate 0.992694 scoreMean 13.1039 scoreStdev 15.4155 scoreLead 13.1039 scoreSelfplay 15.9613 prior 0.0365862 lcb 0.965865 utilityLcb 0.956097 order 4 pv D4 Q16 Q4 info move D16 visits 6 utility 1.03122 winrate 0.992694 scoreMean 13.1039 scoreStdev 15.4155 scoreLead 13.1039 scoreSelfplay 15.9613 prior 0.0365862 lcb 0.965865 utilityLcb 0.956097 isSymmetryOf D4 order 5 pv D16 Q4 Q16 info move Q4 visits 6 utility 1.03122 winrate 0.992694 scoreMean 13.1039 scoreStdev 15.4155 scoreLead 13.1039 scoreSelfplay 15.9613 prior 0.0365862 lcb 0.965865 utilityLcb 0.956097 isSymmetryOf D4 order 6 pv Q4 D16 D4 info move Q16 visits 6 utility 1.03122 winrate 0.992694 scoreMean 13.1039 scoreStdev 15.4155 scoreLead 13.1039 scoreSelfplay 15.9613 prior 0.0365862 lcb 0.965865 utilityLcb 0.956097 isSymmetryOf D4 order 7 pv Q16 D4 D16 info move C4 visits 6 utility 1.03876 winrate 0.992369 scoreMean 13.9992 scoreStdev 16.0093 scoreLead 13.9992 scoreSelfplay 16.7473 prior 0.0403575 lcb 0.962421 utilityLcb 0.954908 order 8 pv C4 Q4 R16 info move C16 visits 6 utility 1.03876 winrate 0.992369 scoreMean 13.9992 scoreStdev 16.0093 scoreLead 13.9992 scoreSelfplay 16.7473 prior 0.0403575 lcb 0.962421 utilityLcb 0.954908 isSymmetryOf C4 order 9 pv C16 Q16 R4 info move R4 visits 6 utility 1.03876 winrate 0.992369 scoreMean 13.9992 scoreStdev 16.0093 scoreLead 13.9992 scoreSelfplay 16.7473 prior 0.0403575 lcb 0.962421 utilityLcb 0.954908 isSymmetryOf C4 order 10 pv R4 D4 C16 info move R16 visits 6 utility 1.03876 winrate 0.992369 scoreMean 13.9992 scoreStdev 16.0093 scoreLead 13.9992 scoreSelfplay 16.7473 prior 0.0403575 lcb 0.962421 utilityLcb 0.954908 isSymmetryOf C4 order 11 pv R16 D16 C4 info move Q17 visits 6 utility 1.03876 winrate 0.992369 scoreMean 13.9992 scoreStdev 16.0093 scoreLead 13.9992 scoreSelfplay 16.7473 prior 0.0403575 lcb 0.962421 utilityLcb 0.954908 isSymmetryOf C4 order 12 pv Q17 Q4 D3 info move D17 visits 6 utility 1.03876 winrate 0.992369 scoreMean 13.9992 scoreStdev 16.0093 scoreLead 13.9992 scoreSelfplay 16.7473 prior 0.0403575 lcb 0.962421 utilityLcb 0.954908 isSymmetryOf C4 order 13 pv D17 D4 Q3 info move Q3 visits 6 utility 1.03876 winrate 0.992369 scoreMean 13.9992 scoreStdev 16.0093 scoreLead 13.9992 scoreSelfplay 16.7473 prior 0.0403575 lcb 0.962421 utilityLcb 0.954908 isSymmetryOf C4 order 14 pv Q3 Q16 D17 info move D3 visits 6 utility 1.03876 winrate 0.992369 scoreMean 13.9992 scoreStdev 16.0093 scoreLead 13.9992 scoreSelfplay 16.7473 prior 0.0403575 lcb 0.962421 utilityLcb 0.954908 isSymmetryOf C4 order 15 pv D3 D16 Q17 info move D5 visits 6 utility 1.0397 winrate 0.992557 scoreMean 13.6523 scoreStdev 16.244 scoreLead 13.6523 scoreSelfplay 16.5357 prior 0.0145553 lcb 0.966084 utilityLcb 0.965578 order 16 pv D5 C3 E3 info move D15 visits 6 utility 1.0397 winrate 0.992557 scoreMean 13.6523 scoreStdev 16.244 scoreLead 13.6523 scoreSelfplay 16.5357 prior 0.0145553 lcb 0.966084 utilityLcb 0.965578 isSymmetryOf D5 order 17 pv D15 C17 E17 info move Q5 visits 6 utility 1.0397 winrate 0.992557 scoreMean 13.6523 scoreStdev 16.244 scoreLead 13.6523 scoreSelfplay 16.5357 prior 0.0145553 lcb 0.966084 utilityLcb 0.965578 isSymmetryOf D5 order 18 pv Q5 R3 P3 info move Q15 visits 6 utility 1.0397 winrate 0.992557 scoreMean 13.6523 scoreStdev 16.244 scoreLead 13.6523 scoreSelfplay 16.5357 prior 0.0145553 lcb 0.966084 utilityLcb 0.965578 isSymmetryOf D5 order 19 pv Q15 R17 P17 info move P16 visits 6 utility 1.0397 winrate 0.992557 scoreMean 13.6523 scoreStdev 16.244 scoreLead 13.6523 scoreSelfplay 16.5357 prior 0.0145553 lcb 0.966084 utilityLcb 0.965578 isSymmetryOf D5 order 20 pv P16 R17 R15 info move E16 visits 6 utility 1.0397 winrate 0.992557 scoreMean 13.6523 scoreStdev 16.244 scoreLead 13.6523 scoreSelfplay 16.5357 prior 0.0145553 lcb 0.966084 utilityLcb 0.965578 isSymmetryOf D5 order 21 pv E16 C17 C15 info move P4 visits 6 utility 1.0397 winrate 0.992557 scoreMean 13.6523 scoreStdev 16.244 scoreLead 13.6523 scoreSelfplay 16.5357 prior 0.0145553 lcb 0.966084 utilityLcb 0.965578 isSymmetryOf D5 order 22 pv P4 R3 R5 info move E4 visits 6 utility 1.0397 winrate 0.992557 scoreMean 13.6523 scoreStdev 16.244 scoreLead 13.6523 scoreSelfplay 16.5357 prior 0.0145553 lcb 0.966084 utilityLcb 0.965578 isSymmetryOf D5 order 23 pv E4 C3 C5 info move C5 visits 5 utility 1.03658 winrate 0.991834 scoreMean 14.022 scoreStdev 16.028 scoreLead 14.022 scoreSelfplay 16.5416 prior 0.0108768 lcb 0.950179 utilityLcb 0.919942 order 24 pv C5 Q4 Q16 info move C15 visits 5 utility 1.03658 winrate 0.991834 scoreMean 14.022 scoreStdev 16.028 scoreLead 14.022 scoreSelfplay 16.5416 prior 0.0108768 lcb 0.950179 utilityLcb 0.919942 isSymmetryOf C5 order 25 pv C15 Q16 Q4 info move R5 visits 5 utility 1.03658 winrate 0.991834 scoreMean 14.022 scoreStdev 16.028 scoreLead 14.022 scoreSelfplay 16.5416 prior 0.0108768 lcb 0.950179 utilityLcb 0.919942 isSymmetryOf C5 order 26 pv R5 D4 D16 info move R15 visits 5 utility 1.03658 winrate 0.991834 scoreMean 14.022 scoreStdev 16.028 scoreLead 14.022 scoreSelfplay 16.5416 prior 0.0108768 lcb 0.950179 utilityLcb 0.919942 isSymmetryOf C5 order 27 pv R15 D16 D4 info move P17 visits 5 utility 1.03658 winrate 0.991834 scoreMean 14.022 scoreStdev 16.028 scoreLead 14.022 scoreSelfplay 16.5416 prior 0.0108768 lcb 0.950179 utilityLcb 0.919942 isSymmetryOf C5 order 28 pv P17 Q4 D4 info move E17 visits 5 utility 1.03658 winrate 0.991834 scoreMean 14.022 scoreStdev 16.028 scoreLead 14.022 scoreSelfplay 16.5416 prior 0.0108768 lcb 0.950179 utilityLcb 0.919942 isSymmetryOf C5 order 29 pv E17 D4 Q4 info move P3 visits 5 utility 1.03658 winrate 0.991834 scoreMean 14.022 scoreStdev 16.028 scoreLead 14.022 scoreSelfplay 16.5416 prior 0.0108768 lcb 0.950179 utilityLcb 0.919942 isSymmetryOf C5 order 30 pv P3 Q16 D16 info move E3 visits 5 utility 1.03658 winrate 0.991834 scoreMean 14.022 scoreStdev 16.028 scoreLead 14.022 scoreSelfplay 16.5416 prior 0.0108768 lcb 0.950179 utilityLcb 0.919942 isSymmetryOf C5 order 31 pv E3 D16 Q16 info move C6 visits 5 utility 1.01588 winrate 0.987974 scoreMean 12.5585 scoreStdev 16.9021 scoreLead 12.5585 scoreSelfplay 15.3843 prior 0.00368594 lcb 0.919743 utilityLcb 0.824837 order 32 pv C6 C4 D4 D3 info move C14 visits 5 utility 1.01588 winrate 0.987974 scoreMean 12.5585 scoreStdev 16.9021 scoreLead 12.5585 scoreSelfplay 15.3843 prior 0.00368594 lcb 0.919743 utilityLcb 0.824837 isSymmetryOf C6 order 33 pv C14 C16 D16 D17 info move R6 visits 5 utility 1.01588 winrate 0.987974 scoreMean 12.5585 scoreStdev 16.9021 scoreLead 12.5585 scoreSelfplay 15.3843 prior 0.00368594 lcb 0.919743 utilityLcb 0.824837 isSymmetryOf C6 order 34 pv R6 R4 Q4 Q3 info move R14 visits 5 utility 1.01588 winrate 0.987974 scoreMean 12.5585 scoreStdev 16.9021 scoreLead 12.5585 scoreSelfplay 15.3843 prior 0.00368594 lcb 0.919743 utilityLcb 0.824837 isSymmetryOf C6 order 35 pv R14 R16 Q16 Q17 info move O17 visits 5 utility 1.01588 winrate 0.987974 scoreMean 12.5585 scoreStdev 16.9021 scoreLead 12.5585 scoreSelfplay 15.3843 prior 0.00368594 lcb 0.919743 utilityLcb 0.824837 isSymmetryOf C6 order 36 pv O17 Q17 Q16 R16 info move F17 visits 5 utility 1.01588 winrate 0.987974 scoreMean 12.5585 scoreStdev 16.9021 scoreLead 12.5585 scoreSelfplay 15.3843 prior 0.00368594 lcb 0.919743 utilityLcb 0.82483";
+
+const sai_analyze_sample = "info move Q17 visits 1 winrate 5153 prior 4182 lcb 0 areas 5071 order 0 pv Q17\n"+
+"info move Q17 visits 1 winrate 5153 prior 4182 lcb 0 areas 5071 order 0 pv Q17\n"+
+"info move Q17 visits 1 winrate 5153 prior 4182 lcb 0 areas 5071 order 0 pv Q17\n"+
+"info move Q17 visits 1 winrate 5153 prior 4182 lcb 0 areas 5071 order 0 pv Q17 info move Q16 visits 1 winrate 5146 prior 2277 lcb 0 areas 4862 order 1 pv Q16\n"+
+"info move Q17 visits 1 winrate 5153 prior 4182 lcb 0 areas 5071 order 0 pv Q17 info move Q16 visits 1 winrate 5146 prior 2277 lcb 0 areas 4862 order 1 pv Q16\n"+
+"info move Q17 visits 1 winrate 5153 prior 4182 lcb 0 areas 5071 order 0 pv Q17 info move Q16 visits 1 winrate 5146 prior 2277 lcb 0 areas 4862 order 1 pv Q16\n"+
+"info move Q17 visits 2 winrate 5087 prior 4182 lcb 0 areas 4408 order 0 pv Q17 D4 info move Q16 visits 1 winrate 5146 prior 2277 lcb 0 areas 4862 order 1 pv Q16\n"+
+"info move Q17 visits 2 winrate 5087 prior 4182 lcb 0 areas 4408 order 0 pv Q17 D4 info move Q16 visits 1 winrate 5146 prior 2277 lcb 0 areas 4862 order 1 pv Q16\n"+
+"info move Q17 visits 2 winrate 5087 prior 4182 lcb 0 areas 4408 order 0 pv Q17 D4 info move Q16 visits 1 winrate 5146 prior 2277 lcb 0 areas 4862 order 1 pv Q16\n"+
+"info move Q17 visits 2 winrate 5087 prior 4182 lcb 0 areas 4408 order 0 pv Q17 D4 info move Q16 visits 1 winrate 5146 prior 2277 lcb 0 areas 4862 order 1 pv Q16\n"+
+"info move Q17 visits 3 winrate 5058 prior 4182 lcb 0 areas 3659 order 0 pv Q17 D3 info move Q16 visits 1 winrate 5146 prior 2277 lcb 0 areas 4862 order 1 pv Q16\n"+
+"info move Q17 visits 3 winrate 5058 prior 4182 lcb 0 areas 3659 order 0 pv Q17 D3 info move Q16 visits 1 winrate 5146 prior 2277 lcb 0 areas 4862 order 1 pv Q16\n"+
+"info move Q17 visits 3 winrate 5058 prior 4182 lcb 0 areas 3659 order 0 pv Q17 D3 info move Q16 visits 1 winrate 5146 prior 2277 lcb 0 areas 4862 order 1 pv Q16\n"+
+"info move Q17 visits 3 winrate 5058 prior 4182 lcb 0 areas 3659 order 0 pv Q17 D3 info move Q16 visits 2 winrate 5087 prior 2277 lcb 0 areas 4268 order 1 pv Q16 C4\n"+
+"info move Q17 visits 3 winrate 5058 prior 4182 lcb 0 areas 3659 order 0 pv Q17 D3 info move Q16 visits 2 winrate 5087 prior 2277 lcb 0 areas 4268 order 1 pv Q16 C4\n"+
+"info move Q17 visits 3 winrate 5058 prior 4182 lcb 0 areas 3659 order 0 pv Q17 D3 info move Q16 visits 2 winrate 5087 prior 2277 lcb 0 areas 4268 order 1 pv Q16 C4\n"+
+"info move Q17 visits 4 winrate 5047 prior 4182 lcb 2854 areas 3026 order 0 pv Q17 D3 info move Q16 visits 2 winrate 5087 prior 2277 lcb 0 areas 4268 order 1 pv Q16 C4\n"+
+"info move Q17 visits 4 winrate 5047 prior 4182 lcb 2854 areas 3026 order 0 pv Q17 D3 info move Q16 visits 2 winrate 5087 prior 2277 lcb 0 areas 4268 order 1 pv Q16 C4\n"+
+"info move Q17 visits 4 winrate 5047 prior 4182 lcb 2854 areas 3026 order 0 pv Q17 D3 info move Q16 visits 2 winrate 5087 prior 2277 lcb 0 areas 4268 order 1 pv Q16 C4\n"+
+"info move Q17 visits 4 winrate 5047 prior 4182 lcb 2854 areas 3026 order 0 pv Q17 D3 info move Q16 visits 2 winrate 5087 prior 2277 lcb 0 areas 4268 order 1 pv Q16 C4\n"+
+"info move Q17 visits 5 winrate 5044 prior 4182 lcb 4213 areas 2553 order 0 pv Q17 D3 info move Q16 visits 2 winrate 5087 prior 2277 lcb 0 areas 4268 order 1 pv Q16 C4\n"+
+"info move Q17 visits 5 winrate 5044 prior 4182 lcb 4213 areas 2553 order 0 pv Q17 D3 info move Q16 visits 2 winrate 5087 prior 2277 lcb 0 areas 4268 order 1 pv Q16 C4\n"+
+"info move Q17 visits 5 winrate 5044 prior 4182 lcb 4213 areas 2553 order 0 pv Q17 D3 info move Q16 visits 2 winrate 5087 prior 2277 lcb 0 areas 4268 order 1 pv Q16 C4\n"+
+"\n"+
+"move  visits reuse ppv winrate  agent   LCB   stdev policy fvisit alpkt w1st PV\n"+
+"\n"+
+" Q17       6     0   3  50.21% 50.21% 44.40%  0.91% 41.82% 54.55%   0.2  17% Q17 Q3\n"+
+" Q16       3     0   6  50.36% 50.36% -99.9%  1.28% 22.77% 27.27%   0.3  33% Q16 D17\n"+
+" P16       0     0  35   0.00%  0.00% -99.9%  0.00%  2.39%  0.00%  -0.0   0% P16 \n"+
+" P17       0     0  42   0.00%  0.00% -99.9%  0.00%  1.99%  0.00%  -0.0   0% P17 \n"+
+"\n"+
+"      visits reuse  de winrate  agent parent  stdev p_loss  ineff alpkt beta\n"+
+"Root      11     0   3  45.64% 50.26% 45.64% 10.30%  1.07   0.00%   0.1 0.12\n"+
+"\n"+
+"Final agent lambda=0.00, mu=0.00, interval [0.0, 0.0].\n"+
+"2.8 average depth, 3 max depth\n"+
+"3 non leaf nodes, 3.00 average children\n"+
+"\n"+
+"11 visits, 3117 nodes";
+
+
+const leela_analyze_sample = "NN eval=0.463478\n"+
+"info move D4 visits 2 winrate 4671 prior 2198 lcb 0 order 0 pv D4 D16 info move D16 visits 0 winrate 0 prior 2173 lcb 0 order 1 pv D16 info move Q4 visits 0 winrate 0 prior 2172 lcb 0 order 2 pv Q4 info move Q16 visits 0 winrate 0 prior 2147 lcb 0 order 3 pv Q16 info move R4 visits 0 winrate 0 prior 74 lcb 0 order 4 pv R4 info move D3 visits 0 winrate 0 prior 74 lcb 0 order 5 pv D3 info move D17 visits 0 winrate 0 prior 73 lcb 0 order 6 pv D17 info move Q3 visits 0 winrate 0 prior 72 lcb 0 order 7 pv Q3 info move C16 visits 0 winrate 0 prior 71 lcb 0 order 8 pv C16 info move C4 visits 0 winrate 0 prior 71 lcb 0 order 9 pv C4\n"+
+"info move D4 visits 2 winrate 4671 prior 2198 lcb 0 order 0 pv D4 D16 info move D16 visits 0 winrate 0 prior 2173 lcb 0 order 1 pv D16 info move Q4 visits 0 winrate 0 prior 2172 lcb 0 order 2 pv Q4 info move Q16 visits 0 winrate 0 prior 2147 lcb 0 order 3 pv Q16 info move R4 visits 0 winrate 0 prior 74 lcb 0 order 4 pv R4 info move D3 visits 0 winrate 0 prior 74 lcb 0 order 5 pv D3 info move D17 visits 0 winrate 0 prior 73 lcb 0 order 6 pv D17 info move Q3 visits 0 winrate 0 prior 72 lcb 0 order 7 pv Q3 info move C16 visits 0 winrate 0 prior 71 lcb 0 order 8 pv C16 info move C4 visits 0 winrate 0 prior 71 lcb 0 order 9 pv C4\n"+
+"\n"+
+"  D4 ->       4 (V: 46.64%) (LCB: 31.68%) (N: 21.99%) PV: D4 D16 Q4 R16\n"+
+" D16 ->       0 (V:  0.00%) (LCB:  0.00%) (N: 21.73%) PV: D16 \n"+
+"3.0 average depth, 5 max depth\n"+
+"4 non leaf nodes, 1.00 average children\n"+
+"\n"+
+"5 visits, 1795 nodes";
 
 /*const kata_analyze_sample = "
  info move C3 visits 6 utility 1.04291 winrate 0.992245 scoreMean 14.4587 scoreStdev 16.1808 scoreLead 14.4587 scoreSelfplay 17.096 prior 0.0183468 lcb 0.97559 utilityLcb 0.996279 order 0 pv C3 Q4 R16
@@ -68,6 +122,8 @@ const visitsTag = " visits ";
 const utilityTag = " utility ";
 const scoreMeanTag = " scoreMean ";
 const scoreStdevTag = " scoreStdev ";
+const winrateTag = " winrate ";
+const priorTag = " prior ";
 const unknownCommandTag = "unknown command";
 
 const myEngineSettings = { // priority in this order
@@ -112,7 +168,8 @@ const chooseKataMove = (kataMoves) => {
     //console.log("chooseKataMove SGF: \n",currentSGF);
     const currentGame = sgf.parse(currentSGF)
     //console.log("chooseKataMove game: \n",currentGame);
-    let kata_filtered_moves = kataMoves.filter(oneMove => kataMoves[0][1]-myEngineSettings.loss_limit < oneMove[1]).sort((moveA, moveB)=>(moveB[1]-moveA[1]))
+    let kata_filtered_moves = kataMoves.sort((moveA, moveB)=>(moveB[1]-moveA[1]))
+    kata_filtered_moves = kata_filtered_moves.filter(oneMove => !oneMove[1] || (kataMoves[0][1]-myEngineSettings.loss_limit < oneMove[1]))
     let grid = null;
     //console.log("chooseKataMove: before ("+kata_filtered_moves.length+")", kata_filtered_moves);
     let currentChoice = null;
@@ -203,12 +260,62 @@ const parseKataAnalyze = (kataAnalyze) => {
     })
 }
 
+// "info move D4 visits 2 winrate 4671 prior 2198 lcb 0 order 0 pv D4 D16 info move D16 visits 0 winrate 0 prior 2173 lcb 0 order 1 pv D16 info move Q4 visits 0 winrate 0 prior 2172 lcb 0 order 2 pv Q4 info move Q16 visits 0 winrate 0 prior 2147 lcb 0 order 3 pv Q16 info move R4 visits 0 winrate 0 prior 74 lcb 0 order 4 pv R4 info move D3 visits 0 winrate 0 prior 74 lcb 0 order 5 pv D3 info move D17 visits 0 winrate 0 prior 73 lcb 0 order 6 pv D17 info move Q3 visits 0 winrate 0 prior 72 lcb 0 order 7 pv Q3 info move C16 visits 0 winrate 0 prior 71 lcb 0 order 8 pv C16 info move C4 visits 0 winrate 0 prior 71 lcb 0 order 9 pv C4\n"+
+// info move D4 visits 2 winrate 4671 prior 2198 lcb 0 order 0 pv D4 D16 
+// info move D16 visits 0 winrate 0 prior 2173 lcb 0 order 1 pv D16 
+// info move Q4 visits 0 winrate 0 prior 2172 lcb 0 order 2 pv Q4 
+// info move Q16 visits 0 winrate 0 prior 2147 lcb 0 order 3 pv Q16 info move R4 visits 0 winrate 0 prior 74 lcb 0 order 4 pv R4 info move D3 visits 0 winrate 0 prior 74 lcb 0 order 5 pv D3 info move D17 visits 0 winrate 0 prior 73 lcb 0 order 6 pv D17 info move Q3 visits 0 winrate 0 prior 72 lcb 0 order 7 pv Q3 info move C16 visits 0 winrate 0 prior 71 lcb 0 order 8 pv C16 info move C4 visits 0 winrate 0 prior 71 lcb 0 order 9 pv C4\n"+
+const parseLeelaAnalyze = (kataAnalyze) => {
+    const kata_lines = kataAnalyze.split(" info");
+    //kata_lines.shift();
+    return kata_lines.map(line => {
+        return [line.substring(line.indexOf(moveTag)+moveTag.length, line.indexOf(visitsTag)),
+            parseFloat(line.substring(line.indexOf(winrateTag)+winrateTag.length, line.indexOf(priorTag))),
+            parseFloat(line.substring(line.indexOf(visitsTag)+visitsTag.length, line.indexOf(winrateTag)))
+        ]
+    })
+}
 
-const copyGenMoveOrAnalyze = (engineResp)=>{
-    if(engineResp && engineResp.length && engineResp.indexOf(unknownCommandTag)>=0) {
+const parseSaiAnalyze = (kataAnalyze) => {
+    const kata_lines = kataAnalyze.split(" info");
+    //kata_lines.shift();
+    return kata_lines.map(line => {
+        return [line.substring(line.indexOf(moveTag)+moveTag.length, line.indexOf(visitsTag)),
+            parseFloat(line.substring(line.indexOf(winrateTag)+winrateTag.length, line.indexOf(priorTag))),
+            parseFloat(line.substring(line.indexOf(visitsTag)+visitsTag.length, line.indexOf(winrateTag)))
+        ]
+    })
+}
+
+const filterOutDoublonMove = (moveList) => {
+	let result = [];
+	
+	moveList.forEach((oneMove) => {
+		const sameMove = result.find((resultMove) => resultMove[0] === oneMove[0]);
+		if(sameMove) {
+			if(oneMove[1]) {
+				const resIdx = result.indexOf(sameMove)
+				result.splice(resIdx,resIdx);
+				result.push(oneMove);
+			}
+		} else {
+			result.push(oneMove);
+		}
+	});
+	
+	return result;
+}
+
+const copyGenMoveOrAnalyze = (p_engineResp)=>{
+	engineResp = p_engineResp[0];
+	
+    if(currentRes && engineResp && engineResp.length && engineResp.indexOf(unknownCommandTag)>=0) {
         currentRes.status(400).send(null);
-    } else if(engineResp && engineResp.length && engineResp.replaceAll('=','').replaceAll('\n','').trim().length){
+		currentRes = null;
+    } else if(currentRes && engineResp && engineResp.length && engineResp.replaceAll('=','').replaceAll('\n','').trim().length){
+		console.log("engineResp ",engineResp);
         let returnedValue = engineResp.indexOf(visitsTag)>0 ? parseKataAnalyze(engineResp): [[engineResp.replaceAll('=','').replaceAll('\n','').trim(),1,100]];
+        returnedValue = filterOutDoublonMove(returnedValue);
         returnedValue = chooseKataMove(returnedValue);
         //console.log('final response1 #'+JSON.stringify(returnedValue)+'#')
         currentRes.status(200).send(returnedValue[0][0]);
@@ -226,16 +333,17 @@ const currentBehaviour = copyGenMoveOrAnalyze;
 
 const resetEngine = () => {
     console.log('resetEngine');
-    result = '';
+    engineFullResponseHolder[0] = '';
     isEngineOn = true;
     isEngineStarting = true;
     child = exec(engineStartCmd);
+	setTimeout(currentBehaviour, 10000, engineFullResponseHolder)
     child.stdout.on('data', function(data) {
-        //result += data;
         //console.log('stdout: (',""+!!currentRes,')',data && data.length /*&& (data.length > 50 ? data.length : data)*/);
         if(currentRes && !isEngineStarting) {
             //currentRes.write(data);
-            currentBehaviour(data)
+			engineFullResponseHolder[0] += data;
+            //currentBehaviour(data)
         }
         if(data && data.indexOf('GTP ready, beginning main protocol loop')>=0) {
             console.log('Engine is READY')
@@ -348,7 +456,19 @@ router.route('/engine').post((req, res) => {
 })
 
 router.route('/parseKata').post((req, res) => {
-    res.status(200).send(parseKataAnalyze(kata_analyze_sample));
+	const oneLine = kata_analyze_sample.split("\n")[0];
+	console.log("parseKata ",oneLine);
+	res.status(200).send(parseKataAnalyze(oneLine));
+});
+router.route('/parseSai').post((req, res) => {
+	const oneLine = sai_analyze_sample.split("\n")[20];
+	console.log("parseSai ",oneLine);
+    res.status(200).send(parseSaiAnalyze(oneLine));
+});
+router.route('/parseLeela').post((req, res) => {
+	const oneLine = leela_analyze_sample.split("\n")[2];
+	console.log("parseLeela ",oneLine);
+    res.status(200).send(parseLeelaAnalyze(oneLine));
 });
 router.route('/testGrid').post((req, res) => {
 
