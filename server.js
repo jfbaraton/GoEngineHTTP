@@ -313,9 +313,13 @@ const filterOutDoublonMove = (moveList) => {
 	return result;
 }
 
-const copyGenMoveOrAnalyze = (p_engineResp)=>{
+const copyGenMoveOrAnalyze = (p_engineResp, p_currentResTime)=>{
 	engineResp = p_engineResp[0];
 	console.log("copyGenMoveOrAnalyze ",currentResTime ,engineResp && engineResp.length);
+	console.log("copyGenMoveOrAnalyze ? ",currentResTime === p_currentResTime);
+	if(currentResTime !== p_currentResTime) {
+		return; // there has been aniother query since
+	}
     if(currentRes && engineResp && engineResp.length && engineResp.indexOf(unknownCommandTag)>=0) {
         currentRes.status(400).send(null);
 		currentRes = null;
@@ -463,7 +467,7 @@ router.route('/engine').post((req, res) => {
 		
 		engineFullResponseHolder[0] = '';
         child.stdin.write(cmd);
-		setTimeout(currentBehaviour, 10000, engineFullResponseHolder);
+		setTimeout(currentBehaviour, 15000, engineFullResponseHolder, currentResTime);
     } else {
         console.log('but engine was dead ', isEngineOn, !!child );
         res.status(400).send('DEAD');
