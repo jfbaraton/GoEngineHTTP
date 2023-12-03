@@ -370,8 +370,7 @@ const resetEngine = () => {
     child = exec(engineStartCmd);
 	let currentEngineTime = currentResTime;
     child.stdout.on('data', function(data) {
-        //result += data;
-        //console.log('stdout: (',""+!!currentRes,')',data && data.length /*&& (data.length > 50 ? data.length : data)*/);
+        console.log('stdout: (',""+!!currentRes,')',data && data.length /*&& (data.length > 50 ? data.length : data)*/);
 		if(currentEngineTime !== currentResTime) {
 			currentEngineTime = currentResTime;
 			engineFullResponseHolder[0] = '';
