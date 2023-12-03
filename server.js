@@ -314,7 +314,7 @@ const filterOutDoublonMove = (moveList) => {
 
 const copyGenMoveOrAnalyze = (p_engineResp)=>{
 	engineResp = p_engineResp[0];
-	
+	console.log("copyGenMoveOrAnalyze" ,engineResp && engineResp.length);
     if(currentRes && engineResp && engineResp.length && engineResp.indexOf(unknownCommandTag)>=0) {
         currentRes.status(400).send(null);
 		currentRes = null;
@@ -339,13 +339,13 @@ const currentBehaviour = copyGenMoveOrAnalyze;
 
 const resetEngine = () => {
     console.log('resetEngine');
-    engineFullResponseHolder[0] = '';
+    engineFullResponseHolder[0] = ''; // TODO: reset on request, remember the current request time
     isEngineOn = true;
     isEngineStarting = true;
     child = exec(engineStartCmd);
 	setTimeout(currentBehaviour, 10000, engineFullResponseHolder)
     child.stdout.on('data', function(data) {
-        //console.log('stdout: (',""+!!currentRes,')',data && data.length /*&& (data.length > 50 ? data.length : data)*/);
+        console.log('stdout: (',""+!!currentRes,')',data && data.length /*&& (data.length > 50 ? data.length : data)*/);
         if(currentRes && !isEngineStarting) {
             //currentRes.write(data);
 			engineFullResponseHolder[0] += data;
@@ -365,7 +365,8 @@ const resetEngine = () => {
     child.stderr.on('data', function(data) {
         //result += data;
         console.log('stderr: ',data && data.length)
-        if(data && data.indexOf('GTP ready, beginning main protocol loop')>=0) {
+        if(data && (data.indexOf('GTP ready, beginning main protocol loop')>=0 ||
+                    data.indexOf('Setting max tree size to')>=0) ) {
             console.log('Engine is READY Err')
 
             currentSGF = null;
